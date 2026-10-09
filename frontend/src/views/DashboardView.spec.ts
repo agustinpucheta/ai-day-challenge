@@ -1,7 +1,8 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { jsonResponse, stubFetch } from '@/test/http';
 import { createTestRouter } from '@/test/router';
+import { resetTracking } from '@/tracking/useTracking';
 import DashboardView from './DashboardView.vue';
 
 const SECRET = 'ATATT-secret-token-value';
@@ -23,6 +24,11 @@ const failure = (status: number, code: string, headers: Record<string, string> =
     headers: { 'Content-Type': 'application/json', ...headers },
   });
 
+/** The tracking list is tested in DashboardTracking.spec.ts; here it is just an empty list. */
+const emptyList = () =>
+  jsonResponse(200, { items: [], metadata: { fetchedAt: '2026-10-09T12:00:00.000Z' } });
+const LIST_ROUTE = { 'GET /api/v1/users/me/tracked-issues': emptyList };
+
 const PANEL_BUTTON = '[aria-labelledby="jira-panel-title"] button';
 
 const verifyCalls = (calls: { method: string; url: string }[]) =>
@@ -36,10 +42,12 @@ async function mountDashboard() {
 }
 
 describe('DashboardView Jira connection', () => {
+  beforeEach(() => resetTracking());
   afterEach(() => vi.unstubAllGlobals());
 
   it('shows the not-configured state and never verifies', async () => {
     const calls = stubFetch({
+      ...LIST_ROUTE,
       'GET /api/v1/jira/connection': () =>
         jsonResponse(200, { mode: 'api_token', status: 'not_configured', siteUrl: null }),
     });
@@ -53,6 +61,7 @@ describe('DashboardView Jira connection', () => {
 
   it('verifies once automatically and shows the connected state', async () => {
     const calls = stubFetch({
+      ...LIST_ROUTE,
       'GET /api/v1/jira/connection': configured,
       'POST /api/v1/jira/connection/verify': verified,
     });
@@ -70,6 +79,7 @@ describe('DashboardView Jira connection', () => {
 
   it('re-verifies only when the user asks', async () => {
     const calls = stubFetch({
+      ...LIST_ROUTE,
       'GET /api/v1/jira/connection': configured,
       'POST /api/v1/jira/connection/verify': verified,
     });
@@ -85,6 +95,7 @@ describe('DashboardView Jira connection', () => {
   it('shows the busy verifying state while Jira answers', async () => {
     let release: (response: Response) => void = () => undefined;
     stubFetch({
+      ...LIST_ROUTE,
       'GET /api/v1/jira/connection': configured,
       'POST /api/v1/jira/connection/verify': () =>
         new Promise<Response>((resolve) => {
@@ -110,6 +121,7 @@ describe('DashboardView Jira connection', () => {
     ['JIRA_UNAVAILABLE', 503, 'Jira is unavailable'],
   ])('maps %s to its own message, never to success', async (code, status, title) => {
     stubFetch({
+      ...LIST_ROUTE,
       'GET /api/v1/jira/connection': configured,
       'POST /api/v1/jira/connection/verify': () => failure(status, code),
     });
@@ -124,6 +136,7 @@ describe('DashboardView Jira connection', () => {
   it('shows Retry-After for rate limiting and recovers through the retry button', async () => {
     let attempt = 0;
     const calls = stubFetch({
+      ...LIST_ROUTE,
       'GET /api/v1/jira/connection': configured,
       'POST /api/v1/jira/connection/verify': () =>
         ++attempt === 1 ? failure(429, 'JIRA_RATE_LIMITED', { 'Retry-After': '30' }) : verified(),
@@ -141,6 +154,7 @@ describe('DashboardView Jira connection', () => {
 
   it('falls back to not-configured when verify answers JIRA_NOT_CONNECTED', async () => {
     stubFetch({
+      ...LIST_ROUTE,
       'GET /api/v1/jira/connection': configured,
       'POST /api/v1/jira/connection/verify': () => failure(409, 'JIRA_NOT_CONNECTED'),
     });
@@ -156,6 +170,7 @@ describe('DashboardView Jira connection', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         if (String(input).endsWith('/verify')) return verified();
+        if (String(input).endsWith('/tracked-issues')) return emptyList();
         if (++attempt === 1) throw new TypeError('Failed to fetch');
         return configured();
       }),
@@ -172,6 +187,7 @@ describe('DashboardView Jira connection', () => {
 
   it('sends a valid search to the issues route and rejects a too-short one', async () => {
     stubFetch({
+      ...LIST_ROUTE,
       'GET /api/v1/jira/connection': () => jsonResponse(200, { status: 'not_configured' }),
     });
     const { wrapper, router } = await mountDashboard();

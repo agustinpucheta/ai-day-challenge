@@ -1,7 +1,9 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { listBody } from '@/test/fixtures';
 import { jsonResponse } from '@/test/http';
 import { createTestRouter } from '@/test/router';
+import { resetTracking } from '@/tracking/useTracking';
 import IssueSearchView from './IssueSearchView.vue';
 
 const SECRET = 'ATATT-secret-token-value';
@@ -26,13 +28,36 @@ const failure = (status: number, code: string, headers: Record<string, string> =
     headers: { 'Content-Type': 'application/json', ...headers },
   });
 
-/** Stubs fetch; `handler` receives the parsed request URL. Returns every requested URL. */
+/** Followed keys that the Track buttons learn from `GET /users/me/tracked-issues`. */
+let trackedItems: unknown[] = [];
+const trackingCalls: { method: string; url: string; body: unknown }[] = [];
+
+/**
+ * Stubs fetch; `handler` receives the parsed request URL. Returns every requested search URL
+ * (tracking requests are recorded apart in `trackingCalls`).
+ */
 function stubSearch(handler: (url: URL) => Response | Promise<Response>): URL[] {
   const urls: URL[] = [];
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (input: RequestInfo | URL) => {
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = new URL(String(input), 'http://localhost');
+      if (url.pathname.includes('/tracked-issues')) {
+        const method = (init?.method ?? 'GET').toUpperCase();
+        const body =
+          typeof init?.body === 'string' ? (JSON.parse(init.body) as unknown) : undefined;
+        trackingCalls.push({ method, url: url.pathname, body });
+        if (method === 'POST') {
+          return jsonResponse(201, {
+            id: 'new-entry',
+            issueKey: (body as { issueKey: string }).issueKey,
+            addedAt: FETCHED_AT,
+          });
+        }
+        return method === 'DELETE'
+          ? new Response(null, { status: 204 })
+          : jsonResponse(200, listBody(trackedItems));
+      }
       urls.push(url);
       return handler(url);
     }),
@@ -60,8 +85,64 @@ async function submit(wrapper: Wrapper, text: string) {
 const loadMoreButton = (wrapper: Wrapper) =>
   wrapper.findAll('button').find((b) => b.text() === 'Load more');
 
+const trackButton = (wrapper: Wrapper, key: string) =>
+  wrapper
+    .findAll('tbody tr')
+    .find((row) => row.get('a').text() === key)
+    ?.find('.track-toggle button');
+
 describe('IssueSearchView', () => {
+  beforeEach(() => {
+    resetTracking();
+    trackedItems = [];
+    trackingCalls.length = 0;
+  });
   afterEach(() => vi.unstubAllGlobals());
+
+  it('offers Track on every row, learns followed keys once, and tracks from a row', async () => {
+    trackedItems = [
+      {
+        id: 'e2',
+        issueKey: 'MASIN-2',
+        addedAt: FETCHED_AT,
+        status: 'error',
+        fetchedAt: FETCHED_AT,
+      },
+    ];
+    stubSearch(() => page([issue('MASIN-1'), issue('MASIN-2')]));
+    const { wrapper } = await mountAt('/issues?q=login');
+
+    expect(trackingCalls.filter((c) => c.method === 'GET')).toHaveLength(1);
+    expect(trackButton(wrapper, 'MASIN-1')?.text()).toBe('Track MASIN-1');
+    expect(trackButton(wrapper, 'MASIN-2')?.text()).toBe('Stop tracking MASIN-2');
+
+    await trackButton(wrapper, 'MASIN-1')?.trigger('click');
+    await flushPromises();
+
+    expect(trackingCalls.find((c) => c.method === 'POST')?.body).toEqual({ issueKey: 'MASIN-1' });
+    expect(trackButton(wrapper, 'MASIN-1')?.text()).toBe('Stop tracking MASIN-1');
+  });
+
+  it('shows the tracking error next to the row when tracking fails', async () => {
+    stubSearch(() => page([issue('MASIN-1')]));
+    const { wrapper } = await mountAt('/issues?q=login');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ code: 'TRACKING_LIMIT_REACHED', message: 'limit' }), {
+            status: 409,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      ),
+    );
+
+    await trackButton(wrapper, 'MASIN-1')?.trigger('click');
+    await flushPromises();
+
+    expect(wrapper.get('tbody [role="alert"]').text()).toContain('You can track up to 50 issues');
+    expect(trackButton(wrapper, 'MASIN-1')?.text()).toBe('Track MASIN-1');
+  });
 
   it('asks for a query and calls nothing when the URL has none', async () => {
     const urls = stubSearch(() => page([]));

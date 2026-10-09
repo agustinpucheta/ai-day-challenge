@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { formatDateTime, storyPointsDeviation } from './format';
+import { formatDateTime, formatTime, storyPointsDeviation } from './format';
+import { countsText, displayPercent, formatPercent, noProgressText } from './progress';
+import { progress } from '@/test/fixtures';
 import { validateQuery } from './query';
 
 describe('storyPointsDeviation', () => {
@@ -20,6 +22,41 @@ describe('formatDateTime', () => {
   it('formats a valid instant and rejects garbage', () => {
     expect(formatDateTime('2026-10-09T12:00:00.000Z')?.iso).toBe('2026-10-09T12:00:00.000Z');
     expect(formatDateTime('not a date')).toBeNull();
+  });
+});
+
+describe('formatTime', () => {
+  it('formats a valid instant and rejects garbage', () => {
+    expect(formatTime('2026-10-09T12:00:00.000Z')).toMatch(/\d/);
+    expect(formatTime('not a date')).toBeNull();
+  });
+});
+
+describe('progress formatting', () => {
+  it.each([
+    [33.3, '33.3%'],
+    [100, '100%'],
+    [50, '50%'],
+    [0, '0%'],
+    [66.66, '66.7%'],
+  ])('formats %s as %s', (value, expected) => {
+    expect(formatPercent(value)).toBe(expected);
+  });
+
+  it('draws a percent only for an ok state, clamped to 0-100', () => {
+    expect(displayPercent(progress({ percent: 42.5 }))).toBe(42.5);
+    expect(displayPercent(progress({ percent: 120 }))).toBe(100);
+    expect(displayPercent(progress({ percent: -3 }))).toBe(0);
+    expect(displayPercent(progress({ state: 'none', percent: null }))).toBeNull();
+    expect(displayPercent(progress({ state: 'all_cancelled', percent: 0 }))).toBeNull();
+    expect(displayPercent(progress({ percent: null }))).toBeNull();
+  });
+
+  it('describes counts and the absence of progress', () => {
+    expect(countsText(progress())).toBe('7 of 12 done · 3 in progress · 2 pending · 1 cancelled');
+    expect(noProgressText(progress({ state: 'none', basis: 'none' }))).toBe(
+      'Progress does not apply',
+    );
   });
 });
 

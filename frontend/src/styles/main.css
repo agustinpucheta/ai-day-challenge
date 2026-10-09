@@ -18,6 +18,9 @@
   --color-neutral-bg: #eceff3;
   --color-info-bg: #e3edfb;
   --color-info-text: #184c99;
+  --color-danger: #b42323;
+  --color-danger-hover: #8f1d1d;
+  --color-danger-text: #ffffff;
 
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-size-sm: 0.875rem;
@@ -57,6 +60,9 @@
     --color-neutral-bg: #2a3038;
     --color-info-bg: #1b2c45;
     --color-info-text: #a9c9f8;
+    --color-danger: #e06666;
+    --color-danger-hover: #ea8585;
+    --color-danger-text: #0b0d10;
     --shadow: none;
   }
 }
@@ -289,6 +295,17 @@ select {
   background: var(--color-primary-hover);
 }
 
+.button--danger {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: var(--color-danger-text);
+}
+
+.button--danger:hover:not(:disabled) {
+  background: var(--color-danger-hover);
+  border-color: var(--color-danger-hover);
+}
+
 .button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -461,6 +478,260 @@ select {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Progress: the fill colour carries the state; the number is always printed next to it. */
+.progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.progress__track {
+  flex: 1;
+  height: 0.9rem;
+  min-width: 4rem;
+  background: var(--color-neutral-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress__fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.progress[data-state='complete'] .progress__fill {
+  background: var(--color-success-text);
+}
+
+/* No data and all cancelled never draw a fill: striped tracks say "nothing to measure". */
+.progress[data-state='none'] .progress__track {
+  background: repeating-linear-gradient(135deg, transparent 0 6px, var(--color-border) 6px 8px);
+}
+
+.progress[data-state='all_cancelled'] .progress__track {
+  background: repeating-linear-gradient(135deg, var(--color-error-bg) 0 6px, transparent 6px 8px);
+  border-color: var(--color-error-text);
+}
+
+.progress__value {
+  min-width: 3.5rem;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress--md .progress__track {
+  height: 1.1rem;
+}
+
+.progress--md .progress__value {
+  font-size: var(--font-size-lg);
+}
+
+.progress--sm .progress__track {
+  height: 0.55rem;
+}
+
+.progress--sm .progress__value {
+  font-size: var(--font-size-sm);
+}
+
+.progress-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.progress-summary__notice ul {
+  padding-left: var(--space-4);
+}
+
+.sp-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--font-size-sm);
+}
+
+.table--children .table__progress {
+  min-width: 14rem;
+}
+
+/* My tracking */
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-6);
+}
+
+.page-header h1 {
+  margin: 0;
+}
+
+.page-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.page-header__actions .hint {
+  margin: 0;
+}
+
+.card--compact {
+  padding: var(--space-3) var(--space-4);
+}
+
+.connection-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.connection-line .button {
+  margin-left: auto;
+}
+
+.grid--cards {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  align-items: start;
+}
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tracked-card,
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--space-4);
+}
+
+.tracked-card--error {
+  border-color: var(--color-error-text);
+}
+
+.tracked-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.tracked-card__key {
+  font-size: var(--font-size-lg);
+  margin: 0;
+}
+
+.tracked-card__summary {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.tracked-card__subtitle {
+  font-size: var(--font-size-base);
+  margin: 0;
+}
+
+.tracked-card__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tracked-card__children {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.tracked-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin-top: auto;
+}
+
+.tracked-card__footer .hint {
+  margin: 0;
+  flex-basis: 100%;
+}
+
+.stop-tracking {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.stop-tracking__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.track-toggle {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.skeleton {
+  display: block;
+  border-radius: var(--radius);
+  background: var(--color-neutral-bg);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton--title {
+  height: 1.4rem;
+  width: 40%;
+}
+
+.skeleton--line {
+  height: 0.9rem;
+  width: 75%;
+}
+
+.skeleton--bar {
+  height: 1.1rem;
+  width: 100%;
+  border-radius: 999px;
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+
+  .progress__fill {
+    transition: none;
+  }
 }
 
 @media (max-width: 40rem) {

@@ -36,7 +36,7 @@ async function onLogout(): Promise<void> {
     <header class="app-header">
       <RouterLink :to="{ name: 'home' }" class="app-header__brand">Jira Dashboard</RouterLink>
       <nav aria-label="Main" class="app-header__nav">
-        <RouterLink :to="{ name: 'home' }">Dashboard</RouterLink>
+        <RouterLink :to="{ name: 'home' }">My tracking</RouterLink>
         <RouterLink :to="{ name: 'issues' }" :class="{ 'router-link-exact-active': isIssueDetail }"
           >Issues</RouterLink
         >

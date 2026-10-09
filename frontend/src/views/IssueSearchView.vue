@@ -5,6 +5,7 @@ import IssueErrorState from '@/components/IssueErrorState.vue';
 import IssueSearchForm from '@/components/IssueSearchForm.vue';
 import IssueTable from '@/components/IssueTable.vue';
 import LastFetched from '@/components/LastFetched.vue';
+import TrackToggle from '@/components/TrackToggle.vue';
 import { useIssueSearch } from '@/issues/useIssueSearch';
 import { normalizeQuery, validateQuery } from '@/issues/query';
 
@@ -60,7 +61,16 @@ const busy = computed(() => state.value.kind === 'loading');
           No issues found for “{{ state.query }}”.
         </p>
         <template v-else>
-          <IssueTable :issues="state.items" caption="Search results" show-type />
+          <IssueTable
+            :issues="state.items"
+            caption="Search results"
+            show-type
+            actions-label="Tracking"
+          >
+            <template #actions="{ issue }">
+              <TrackToggle :issue-key="issue.key" />
+            </template>
+          </IssueTable>
           <p class="hint">{{ state.items.length }} loaded</p>
         </template>
 

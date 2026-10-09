@@ -2,7 +2,11 @@
 import { computed } from 'vue';
 import type { JiraConnectionState, JiraErrorReason } from '@/jira/useJiraConnection';
 
-const props = defineProps<{ state: JiraConnectionState }>();
+const props = defineProps<{
+  state: JiraConnectionState;
+  /** Connected collapses to a single status line; every other state keeps the full panel. */
+  compact?: boolean;
+}>();
 
 defineEmits<{ verify: []; reload: [] }>();
 
@@ -38,6 +42,8 @@ const error = computed(() => {
   return state.kind === 'error' ? { ...state, ...ERROR_MESSAGES[state.reason] } : null;
 });
 
+const oneLine = computed(() => props.compact && props.state.kind === 'connected');
+
 const busy = computed(() => props.state.kind === 'loading' || props.state.kind === 'verifying');
 
 const checkedAt = computed(() => {
@@ -54,8 +60,12 @@ const checkedAt = computed(() => {
 </script>
 
 <template>
-  <section class="card" aria-labelledby="jira-panel-title" :aria-busy="busy">
-    <h2 id="jira-panel-title" class="card__title">Jira connection</h2>
+  <section
+    :class="['card', { 'card--compact': oneLine }]"
+    aria-labelledby="jira-panel-title"
+    :aria-busy="busy"
+  >
+    <h2 id="jira-panel-title" :class="oneLine ? 'sr-only' : 'card__title'">Jira connection</h2>
 
     <div class="stack" aria-live="polite">
       <p v-if="state.kind === 'loading'" class="muted">Loading connection status…</p>
@@ -90,6 +100,17 @@ const checkedAt = computed(() => {
           >at <span>{{ state.siteUrl }}</span></template
         >.
       </p>
+
+      <div v-else-if="state.kind === 'connected' && compact" class="connection-line">
+        <span class="badge badge--success">Connected</span>
+        <span>
+          <span>{{ state.displayName }}</span> at <span>{{ state.siteUrl }}</span>
+        </span>
+        <span v-if="checkedAt" class="hint">
+          Last checked <time :datetime="checkedAt.iso">{{ checkedAt.label }}</time>
+        </span>
+        <button type="button" class="button" @click="$emit('verify')">Verify again</button>
+      </div>
 
       <template v-else-if="state.kind === 'connected'">
         <p><span class="badge badge--success">Connected</span></p>

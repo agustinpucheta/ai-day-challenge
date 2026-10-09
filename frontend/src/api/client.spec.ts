@@ -312,4 +312,123 @@ describe('api client', () => {
       expect(onUnauthenticated).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('tracked issues', () => {
+    const entry = { id: 'e1', issueKey: 'MASIN-1', addedAt: '2026-10-09T12:00:00.000Z' };
+    const calls = (fetchMock: ReturnType<typeof vi.fn<typeof fetch>>) =>
+      fetchMock.mock.calls.map(([url, init]) => `${init?.method} ${String(url)}`);
+
+    it('adds with the key in a JSON body; 201 and 200 both resolve with the entry', async () => {
+      for (const status of [201, 200]) {
+        const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse(status, entry));
+        const api = createApiClient({ fetch: fetchMock });
+
+        await expect(api.addTrackedIssue('MASIN-1')).resolves.toEqual(entry);
+
+        expect(calls(fetchMock)).toEqual(['POST /api/v1/users/me/tracked-issues']);
+        expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toEqual({
+          issueKey: 'MASIN-1',
+        });
+      }
+    });
+
+    it('lists with and without refresh=true', async () => {
+      const body = { items: [], metadata: { fetchedAt: '2026-10-09T12:00:00.000Z' } };
+      const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse(200, body));
+      const api = createApiClient({ fetch: fetchMock });
+
+      await api.listTrackedIssues();
+      await api.listTrackedIssues({ refresh: false });
+      await api.listTrackedIssues({ refresh: true });
+
+      expect(calls(fetchMock)).toEqual([
+        'GET /api/v1/users/me/tracked-issues',
+        'GET /api/v1/users/me/tracked-issues',
+        'GET /api/v1/users/me/tracked-issues?refresh=true',
+      ]);
+    });
+
+    it('removes by encoded entry id and resolves on 204', async () => {
+      const fetchMock = vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }));
+      const api = createApiClient({ fetch: fetchMock });
+
+      await expect(api.removeTrackedIssue('a/b')).resolves.toBeUndefined();
+
+      expect(calls(fetchMock)).toEqual(['DELETE /api/v1/users/me/tracked-issues/a%2Fb']);
+    });
+
+    it.each([
+      [404, 'ISSUE_NOT_FOUND_OR_INACCESSIBLE'],
+      [409, 'TRACKING_LIMIT_REACHED'],
+      [409, 'JIRA_NOT_CONNECTED'],
+      [424, 'JIRA_REAUTH_REQUIRED'],
+      [424, 'JIRA_FORBIDDEN'],
+      [429, 'JIRA_RATE_LIMITED'],
+      [503, 'JIRA_UNAVAILABLE'],
+    ])('maps %i %s to a typed ApiError for every tracking call', async (status, code) => {
+      const api = createApiClient({
+        fetch: vi.fn(async () => jsonResponse(status, { code, message: `m ${code}` })),
+      });
+
+      for (const call of [
+        () => api.addTrackedIssue('MASIN-1'),
+        () => api.listTrackedIssues(),
+        () => api.removeTrackedIssue('e1'),
+      ]) {
+        const error = await call().catch((e: unknown) => e);
+        expect(error).toBeInstanceOf(ApiError);
+        expect(error).toMatchObject({ status, code });
+      }
+    });
+
+    it('keeps Retry-After on a 429 and reports network failures', async () => {
+      const limited = createApiClient({
+        fetch: vi.fn(
+          async () =>
+            new Response(JSON.stringify({ code: 'JIRA_RATE_LIMITED', message: 'slow down' }), {
+              status: 429,
+              headers: { 'Content-Type': 'application/json', 'Retry-After': '12' },
+            }),
+        ),
+      });
+      const offline = createApiClient({
+        fetch: vi.fn(async () => {
+          throw new TypeError('Failed to fetch');
+        }),
+      });
+
+      expect(await limited.addTrackedIssue('MASIN-1').catch((e: unknown) => e)).toMatchObject({
+        code: 'JIRA_RATE_LIMITED',
+        retryAfterSeconds: 12,
+      });
+      expect(await offline.listTrackedIssues().catch((e: unknown) => e)).toMatchObject({
+        status: 0,
+        code: 'NETWORK_ERROR',
+      });
+    });
+
+    it('treats Jira 424 as a Jira failure, never an expired session; a real 401 still is', async () => {
+      const onUnauthenticated = vi.fn();
+      const jira = createApiClient({
+        fetch: vi.fn(async () =>
+          jsonResponse(424, { code: 'JIRA_REAUTH_REQUIRED', message: 'token rejected' }),
+        ),
+        onUnauthenticated,
+      });
+      const session = createApiClient({
+        fetch: vi.fn(async () =>
+          jsonResponse(401, { code: 'UNAUTHENTICATED', message: 'Authentication required' }),
+        ),
+        onUnauthenticated,
+      });
+
+      await jira.addTrackedIssue('MASIN-1').catch(() => undefined);
+      await jira.listTrackedIssues().catch(() => undefined);
+      await jira.removeTrackedIssue('e1').catch(() => undefined);
+      expect(onUnauthenticated).not.toHaveBeenCalled();
+
+      await session.listTrackedIssues().catch(() => undefined);
+      expect(onUnauthenticated).toHaveBeenCalledTimes(1);
+    });
+  });
 });

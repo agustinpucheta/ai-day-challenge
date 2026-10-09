@@ -164,6 +164,41 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/users/me/tracked-issues': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** My followed issues with progress; one failing issue never fails the list */
+    get: operations['TrackingController_list'];
+    put?: never;
+    /** Follow an issue (verified readable in Jira first; idempotent) */
+    post: operations['TrackingController_add'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/me/tracked-issues/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Stop following an issue (idempotent; only my own entries) */
+    delete: operations['TrackingController_remove'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/health': {
     parameters: {
       query?: never;
@@ -245,6 +280,7 @@ export interface components {
         | 'ISSUE_NOT_FOUND_OR_INACCESSIBLE'
         | 'JIRA_RATE_LIMITED'
         | 'JIRA_UNAVAILABLE'
+        | 'TRACKING_LIMIT_REACHED'
         | 'INTERNAL_ERROR';
       /** @example Authentication required */
       message: string;
@@ -383,6 +419,41 @@ export interface components {
       status: components['schemas']['IssueStatusDto'];
       url: string;
     };
+    ProgressDto: {
+      /**
+       * @description What was counted; none = nothing applies.
+       * @enum {string}
+       */
+      basis: 'subtasks' | 'children' | 'none';
+      /**
+       * @description ok = percent available; none = no data (never 0%); all_cancelled = all cancelled.
+       * @enum {string}
+       */
+      state: 'ok' | 'none' | 'all_cancelled';
+      /** @description Denominator (cancelled excluded by default, D-024). */
+      total: number;
+      completed: number;
+      inProgress: number;
+      pending: number;
+      /** @description Cancelled items, always reported separately. */
+      cancelled: number;
+      /** @description Items with an unrecognized status category (never completed). */
+      unknown: number;
+      /** @description 0-100, one decimal; null = no data. */
+      percent: number | null;
+      /** @description True when the children list was truncated at the hard cap. */
+      isApproximate: boolean;
+    };
+    DashboardChildDto: {
+      key: string;
+      summary: string;
+      issueType: components['schemas']['IssueTypeDto'];
+      status: components['schemas']['IssueStatusDto'];
+      url: string;
+      storyPoints: components['schemas']['StoryPointsDto'];
+      /** @description Progress of the child by its own subtasks. */
+      progress: components['schemas']['ProgressDto'];
+    };
     IssueDetailMetadataDto: {
       /**
        * Format: date-time
@@ -399,7 +470,85 @@ export interface components {
     DashboardIssueResponseDto: {
       issue: components['schemas']['DashboardIssueDto'];
       subtasks: components['schemas']['DashboardSubtaskDto'][];
+      progress: components['schemas']['ProgressDto'];
+      /** @description Direct children (epics only; absent otherwise). */
+      children?: components['schemas']['DashboardChildDto'][];
       metadata: components['schemas']['IssueDetailMetadataDto'];
+    };
+    AddTrackedIssueDto: {
+      /**
+       * @description Jira issue key. Trimmed and uppercased before validation.
+       * @example MASIN-123
+       */
+      issueKey: string;
+    };
+    TrackedIssueEntryDto: {
+      /**
+       * Format: uuid
+       * @description Id of the tracking entry (not the Jira issue id).
+       */
+      id: string;
+      /** @example MASIN-123 */
+      issueKey: string;
+      /** Format: date-time */
+      addedAt: string;
+    };
+    TrackedIssueSummaryDto: {
+      /** @example MASIN-123 */
+      key: string;
+      summary: string;
+      issueType: components['schemas']['IssueTypeDto'];
+      status: components['schemas']['IssueStatusDto'];
+      url: string;
+      storyPoints: components['schemas']['StoryPointsDto'];
+    };
+    TrackedIssueErrorDto: {
+      /**
+       * @description Normalized code (same set as the endpoint errors).
+       * @example ISSUE_NOT_FOUND_OR_INACCESSIBLE
+       */
+      code: string;
+      message: string;
+    };
+    TrackedIssueItemDto: {
+      /**
+       * Format: uuid
+       * @description Id of the tracking entry (not the Jira issue id).
+       */
+      id: string;
+      /** @example MASIN-123 */
+      issueKey: string;
+      /** Format: date-time */
+      addedAt: string;
+      /** @enum {string} */
+      status: 'ok' | 'error';
+      /** @description Only when status is ok. */
+      issue?: components['schemas']['TrackedIssueSummaryDto'];
+      /** @description Only when status is ok. Never present (not even zeros) for an errored item. */
+      progress?: components['schemas']['ProgressDto'];
+      /** @description Direct children count; epics with status ok only. */
+      childrenCount?: number;
+      /** @description Only when status is ok. */
+      warnings?: string[];
+      /**
+       * Format: date-time
+       * @description When Jira was read for this item. A cached item keeps its original read time; for an error it is the attempt time.
+       */
+      fetchedAt: string;
+      /** @description Only when status is error. */
+      error?: components['schemas']['TrackedIssueErrorDto'];
+    };
+    TrackedIssuesMetadataDto: {
+      /**
+       * Format: date-time
+       * @description When this list was assembled.
+       */
+      fetchedAt: string;
+    };
+    TrackedIssuesResponseDto: {
+      /** @description Ordered by display order. */
+      items: components['schemas']['TrackedIssueItemDto'][];
+      metadata: components['schemas']['TrackedIssuesMetadataDto'];
     };
     HealthResponseDto: {
       /** @enum {string} */
@@ -457,7 +606,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponseDto'];
         };
       };
-      /** @description EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured) */
+      /** @description EMAIL_ALREADY_REGISTERED, JIRA_NOT_CONNECTED (Jira credentials not configured) or TRACKING_LIMIT_REACHED */
       409: {
         headers: {
           [name: string]: unknown;
@@ -732,7 +881,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponseDto'];
         };
       };
-      /** @description EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured) */
+      /** @description EMAIL_ALREADY_REGISTERED, JIRA_NOT_CONNECTED (Jira credentials not configured) or TRACKING_LIMIT_REACHED */
       409: {
         headers: {
           [name: string]: unknown;
@@ -811,7 +960,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponseDto'];
         };
       };
-      /** @description EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured) */
+      /** @description EMAIL_ALREADY_REGISTERED, JIRA_NOT_CONNECTED (Jira credentials not configured) or TRACKING_LIMIT_REACHED */
       409: {
         headers: {
           [name: string]: unknown;
@@ -895,7 +1044,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponseDto'];
         };
       };
-      /** @description EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured) */
+      /** @description EMAIL_ALREADY_REGISTERED, JIRA_NOT_CONNECTED (Jira credentials not configured) or TRACKING_LIMIT_REACHED */
       409: {
         headers: {
           [name: string]: unknown;
@@ -924,6 +1073,198 @@ export interface operations {
       };
       /** @description DATABASE_UNAVAILABLE or JIRA_UNAVAILABLE */
       503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+    };
+  };
+  TrackingController_list: {
+    parameters: {
+      query?: {
+        /** @description true skips the in-memory cache and reads Jira again. */
+        refresh?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TrackedIssuesResponseDto'];
+        };
+      };
+      /** @description VALIDATION_ERROR: invalid or non-whitelisted input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login) */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+    };
+  };
+  TrackingController_add: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AddTrackedIssueDto'];
+      };
+    };
+    responses: {
+      /** @description Already tracked. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TrackedIssueEntryDto'];
+        };
+      };
+      /** @description Newly tracked. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TrackedIssueEntryDto'];
+        };
+      };
+      /** @description VALIDATION_ERROR: invalid or non-whitelisted input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login) */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description FORBIDDEN_ORIGIN (CSRF origin check) or REGISTRATION_DISABLED */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description ISSUE_NOT_FOUND_OR_INACCESSIBLE: the issue does not exist or is not visible (indistinguishable) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description EMAIL_ALREADY_REGISTERED, JIRA_NOT_CONNECTED (Jira credentials not configured) or TRACKING_LIMIT_REACHED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description JIRA_REAUTH_REQUIRED (Jira rejected the API token) or JIRA_FORBIDDEN (account lacks permission) */
+      424: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description RATE_LIMITED (local throttle) or JIRA_RATE_LIMITED (Jira; see Retry-After) */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description DATABASE_UNAVAILABLE or JIRA_UNAVAILABLE */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+    };
+  };
+  TrackingController_remove: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed, or nothing to remove. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description VALIDATION_ERROR: invalid or non-whitelisted input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login) */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description FORBIDDEN_ORIGIN (CSRF origin check) or REGISTRATION_DISABLED */
+      403: {
         headers: {
           [name: string]: unknown;
         };

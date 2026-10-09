@@ -2,13 +2,15 @@
 import { computed } from 'vue';
 import { formatDateTime } from '@/issues/format';
 
-const props = defineProps<{ fetchedAt: string }>();
+const props = withDefaults(defineProps<{ fetchedAt: string; label?: string }>(), {
+  label: 'Last fetched',
+});
 
 const formatted = computed(() => formatDateTime(props.fetchedAt));
 </script>
 
 <template>
   <p v-if="formatted" class="hint">
-    Last fetched <time :datetime="formatted.iso">{{ formatted.label }}</time>
+    {{ label }} <time :datetime="formatted.iso">{{ formatted.label }}</time>
   </p>
 </template>

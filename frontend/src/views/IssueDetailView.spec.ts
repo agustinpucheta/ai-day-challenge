@@ -1,11 +1,19 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  ALL_CANCELLED,
+  EMAIL,
+  NO_CHILDREN,
+  NO_SUBTASKS,
+  SECRET,
+  childBody,
+  listBody,
+  progress,
+} from '@/test/fixtures';
 import { jsonResponse } from '@/test/http';
 import { createTestRouter } from '@/test/router';
+import { resetTracking } from '@/tracking/useTracking';
 import IssueDetailView from './IssueDetailView.vue';
-
-const SECRET = 'ATATT-secret-token-value';
-const EMAIL = 'owner@example.com';
 
 const status = { name: 'In Progress', categoryKey: 'indeterminate', isCancelled: false };
 
@@ -14,6 +22,8 @@ function detail(
     issue?: Record<string, unknown>;
     subtasks?: unknown[];
     warnings?: string[];
+    progress?: ReturnType<typeof progress>;
+    children?: unknown[];
   } = {},
 ) {
   return jsonResponse(200, {
@@ -31,6 +41,8 @@ function detail(
       ...overrides.issue,
     },
     subtasks: overrides.subtasks ?? [],
+    progress: overrides.progress ?? progress(),
+    ...(overrides.children ? { children: overrides.children } : {}),
     metadata: {
       fetchedAt: '2026-10-09T12:00:00.000Z',
       isStale: false,
@@ -45,12 +57,18 @@ const failure = (statusCode: number, code: string) =>
     headers: { 'Content-Type': 'application/json' },
   });
 
+/** The followed keys are fetched once for the Track button; these tests care about the issue. */
+let trackedItems: unknown[] = [];
+
 /** Stubs fetch for `/dashboard/issues/:key`; returns the keys that were requested. */
 function stubDetail(handler: (key: string) => Response | Promise<Response>): string[] {
   const requested: string[] = [];
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/tracked-issues')) {
+        return jsonResponse(200, listBody(trackedItems));
+      }
       const key = decodeURIComponent(String(input).split('/').pop() ?? '');
       requested.push(key);
       return handler(key);
@@ -77,6 +95,10 @@ const refreshButton = (wrapper: Wrapper) =>
   wrapper.findAll('button').find((b) => b.text().startsWith('Refresh'));
 
 describe('IssueDetailView', () => {
+  beforeEach(() => {
+    resetTracking();
+    trackedItems = [];
+  });
   afterEach(() => vi.unstubAllGlobals());
 
   it('renders the header with status, type and the Jira link', async () => {
@@ -125,7 +147,7 @@ describe('IssueDetailView', () => {
   });
 
   it('shows an explicit empty state for no subtasks', async () => {
-    stubDetail(() => detail({ subtasks: [] }));
+    stubDetail(() => detail({ subtasks: [], progress: NO_SUBTASKS }));
 
     const { wrapper } = await mountAt('/issues/MASIN-1');
 
@@ -164,6 +186,142 @@ describe('IssueDetailView', () => {
     const { wrapper } = await mountAt('/issues/MASIN-1');
 
     expect(wrapper.get('.warnings').text()).toContain('Subtasks were truncated');
+  });
+
+  describe('progress', () => {
+    const bar = (wrapper: Wrapper) => wrapper.get('[role="progressbar"]');
+
+    it('shows the story progress above the story points', async () => {
+      stubDetail(() => detail({ progress: progress({ percent: 58.3 }) }));
+
+      const { wrapper } = await mountAt('/issues/MASIN-1');
+
+      expect(bar(wrapper).attributes('aria-valuenow')).toBe('58.3');
+      expect(bar(wrapper).attributes('aria-label')).toBe('MASIN-1 progress');
+      expect(wrapper.text()).toContain('58.3%');
+      expect(wrapper.text()).toContain('7 of 12 done · 3 in progress · 2 pending · 1 cancelled');
+      const html = wrapper.html();
+      expect(html.indexOf('progress-title')).toBeLessThan(html.indexOf('sp-title'));
+    });
+
+    it('shows 100% without a decimal', async () => {
+      stubDetail(() => detail({ progress: progress({ percent: 100, completed: 12 }) }));
+
+      const { wrapper } = await mountAt('/issues/MASIN-1');
+
+      expect(wrapper.get('.progress__value').text()).toBe('100%');
+    });
+
+    it.each([
+      ['no subtasks', NO_SUBTASKS, 'No subtasks yet'],
+      ['all cancelled', ALL_CANCELLED, 'All items cancelled'],
+    ])('explains %s without any percentage', async (_name, p, copy) => {
+      stubDetail(() => detail({ progress: p }));
+
+      const { wrapper } = await mountAt('/issues/MASIN-1');
+
+      expect(wrapper.text()).toContain(copy);
+      expect(wrapper.text()).not.toContain('%');
+      expect(wrapper.find('[role="progressbar"]').exists()).toBe(false);
+    });
+
+    it('notes unknown statuses and shows the approximate notice with the warning', async () => {
+      stubDetail(() =>
+        detail({
+          progress: progress({ unknown: 2, isApproximate: true }),
+          warnings: ['Only the first 300 children were counted'],
+        }),
+      );
+
+      const { wrapper } = await mountAt('/issues/MASIN-1');
+
+      expect(wrapper.text()).toContain('2 items with unknown status');
+      expect(wrapper.get('.alert--warning').text()).toContain('Approximate');
+      expect(wrapper.get('.warnings').text()).toContain('first 300 children');
+    });
+
+    it('shows an epic with its own progress and a Stories table with per-story progress', async () => {
+      stubDetail(() =>
+        detail({
+          issue: {
+            key: 'EPIC-1',
+            issueType: { id: '2', name: 'Epic', hierarchyLevel: 1, isSubtask: false },
+            storyPoints: { final: null, planned: null },
+          },
+          progress: progress({ basis: 'children', percent: 50, total: 2, completed: 1 }),
+          children: [
+            childBody('MASIN-10', {
+              progress: progress({ percent: 33.3, total: 3, completed: 1 }),
+              storyPoints: { final: 8, planned: 5 },
+            }),
+            childBody('MASIN-11', {
+              progress: NO_SUBTASKS,
+              storyPoints: { final: null, planned: null },
+            }),
+          ],
+        }),
+      );
+
+      const { wrapper } = await mountAt('/issues/EPIC-1');
+
+      expect(wrapper.get('h2#children-title').text()).toBe('Stories');
+      expect(wrapper.find('#subtasks-title').exists()).toBe(false);
+      expect(wrapper.get('.progress__value').text()).toBe('50%');
+      const rows = wrapper.findAll('tbody tr');
+      expect(rows).toHaveLength(2);
+      expect(rows[0]!.get('a').attributes('href')).toBe('/issues/MASIN-10');
+      expect(rows[0]!.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('33.3');
+      expect(rows[0]!.get('[data-testid="sp-final"]').text()).toBe('Final 8');
+      expect(rows[0]!.get('[data-testid="sp-planned"]').text()).toBe('Planned 5');
+      expect(rows[0]!.get('a[target="_blank"]').attributes('href')).toContain('MASIN-10');
+      expect(rows[0]!.find('.badge--indeterminate').exists()).toBe(true);
+      // a story without subtasks says so, and its story points are "Not estimated", never 0
+      expect(rows[1]!.text()).toContain('No subtasks yet');
+      expect(rows[1]!.find('[role="progressbar"]').exists()).toBe(false);
+      expect(rows[1]!.get('[data-testid="sp-final"]').text()).toContain('Not estimated');
+      expect(rows[1]!.text()).not.toContain('%');
+    });
+
+    it('says "No children yet" for an epic without children, with no percentage', async () => {
+      stubDetail(() => detail({ progress: NO_CHILDREN, children: [] }));
+
+      const { wrapper } = await mountAt('/issues/EPIC-1');
+
+      expect(wrapper.text()).toContain('No children yet');
+      expect(wrapper.find('table').exists()).toBe(false);
+      expect(wrapper.text()).not.toContain('%');
+    });
+  });
+
+  describe('tracking', () => {
+    const toggle = (wrapper: Wrapper) =>
+      wrapper.findAll('button').find((b) => /^(Track|Stop tracking)/.test(b.text()));
+
+    it('offers Track for an issue that is not followed, named with its key', async () => {
+      stubDetail(() => detail());
+
+      const { wrapper } = await mountAt('/issues/MASIN-1');
+
+      expect(toggle(wrapper)?.text()).toBe('Track MASIN-1');
+      expect(toggle(wrapper)?.attributes('disabled')).toBeUndefined();
+    });
+
+    it('offers Stop tracking for an issue that is already followed', async () => {
+      trackedItems = [
+        {
+          id: 'e1',
+          issueKey: 'MASIN-1',
+          addedAt: '2026-10-09T12:00:00.000Z',
+          status: 'error',
+          fetchedAt: '2026-10-09T12:00:00.000Z',
+        },
+      ];
+      stubDetail(() => detail());
+
+      const { wrapper } = await mountAt('/issues/MASIN-1');
+
+      expect(toggle(wrapper)?.text()).toBe('Stop tracking MASIN-1');
+    });
   });
 
   it('shows one message for not found / no access, without retry', async () => {

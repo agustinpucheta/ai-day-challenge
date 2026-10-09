@@ -14,6 +14,11 @@ export type IssueSummary = Schemas['IssueSummaryDto'];
 export type IssueStatus = Schemas['IssueStatusDto'];
 export type IssueSearchResult = Schemas['IssueSearchResponseDto'];
 export type DashboardIssue = Schemas['DashboardIssueResponseDto'];
+export type Progress = Schemas['ProgressDto'];
+export type DashboardChild = Schemas['DashboardChildDto'];
+export type TrackedIssueEntry = Schemas['TrackedIssueEntryDto'];
+export type TrackedIssueItem = Schemas['TrackedIssueItemDto'];
+export type TrackedIssuesResponse = Schemas['TrackedIssuesResponseDto'];
 
 export interface IssueSearchParams {
   q: string;
@@ -26,7 +31,7 @@ export interface CallOptions {
   signal?: AbortSignal;
 }
 
-type HttpMethod = 'GET' | 'POST' | 'PATCH';
+type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 /** Only paths that exist in the generated OpenAPI contract compile. */
 type ApiPath = keyof paths;
 
@@ -181,6 +186,27 @@ export function createApiClient(options: ApiClientOptions = {}) {
     getDashboardIssue: (issueKey: string, { signal }: CallOptions = {}) =>
       request<DashboardIssue>('GET', '/api/v1/dashboard/issues/{issueKey}', {
         params: { issueKey },
+        signal,
+      }),
+    /** Follows an issue. 201 (new) and 200 (already followed) both resolve with the entry. */
+    addTrackedIssue: (issueKey: string, { signal }: CallOptions = {}) =>
+      request<TrackedIssueEntry>('POST', '/api/v1/users/me/tracked-issues', {
+        body: { issueKey },
+        signal,
+      }),
+    /** Followed issues with progress. A failing item is `status: 'error'`, never a failed call. */
+    listTrackedIssues: (
+      { refresh = false }: { refresh?: boolean } = {},
+      { signal }: CallOptions = {},
+    ) =>
+      request<TrackedIssuesResponse>('GET', '/api/v1/users/me/tracked-issues', {
+        query: { refresh: refresh ? 'true' : undefined },
+        signal,
+      }),
+    /** Idempotent: resolves (204) whether or not the entry still exists. */
+    removeTrackedIssue: (id: string, { signal }: CallOptions = {}) =>
+      request<void>('DELETE', '/api/v1/users/me/tracked-issues/{id}', {
+        params: { id },
         signal,
       }),
   };
