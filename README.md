@@ -48,8 +48,22 @@ El repositorio tiene dos proyectos independientes, `backend/` y `frontend/`, y u
 **Conexión a Jira (variables de entorno):**
 
 - `JIRA_URL` (por ejemplo `https://fpatronal.atlassian.net`), `JIRA_USERNAME` (email de tu cuenta Atlassian) y `JIRA_API_TOKEN` (API token de Jira Cloud, creado en id.atlassian.com → Security → API tokens). Son las mismas credenciales que usa tu MCP local de Jira; las de Confluence no se necesitan (D-023).
-- Son opcionales hasta que exista la funcionalidad de conexión: si faltan, la conexión figura como "no configurada".
+- Son opcionales: si faltan las tres, la conexión figura como "no configurada". Si definís solo algunas, el backend no arranca y el error nombra las variables que faltan (nunca sus valores).
+- Pueden estar en el `.env` o como variables de entorno del sistema; las del sistema tienen prioridad. Solo las ven los procesos que se abren después de definirlas, y el backend las lee al arrancar: reiniciá `pnpm dev` tras cambiarlas.
 - Completá el archivo `.env` a mano; nunca se versiona ni debe compartirse.
+- Para verificar la conexión, abrí el panel "Jira" de la pantalla principal (hace una única lectura a `/myself`) o usá `POST /api/v1/jira/connection/verify` desde Swagger (`http://localhost:3000/api/docs`).
+- Para rotar el token: creá uno nuevo en id.atlassian.com → Security → API tokens, actualizá `JIRA_API_TOKEN`, reiniciá el backend y revocá el anterior.
+
+**Problemas frecuentes con la conexión a Jira:**
+
+| Síntoma en el panel | Causa probable | Qué hacer |
+|---|---|---|
+| "Not configured" | Faltan las variables o el proceso no las ve | Definí las tres variables y reiniciá desde una terminal nueva |
+| El backend no arranca y nombra variables | Configuración parcial | Completá o quitá las tres variables juntas |
+| "Jira rejected the API token" (`JIRA_REAUTH_REQUIRED`) | Token inválido, vencido o revocado, o email incorrecto | Creá un token nuevo y revisá `JIRA_USERNAME` |
+| Permiso denegado (`JIRA_FORBIDDEN`) | La cuenta no tiene permiso sobre el recurso | Revisá los permisos de tu cuenta en Jira |
+| Límite de peticiones (`JIRA_RATE_LIMITED`) | Demasiadas llamadas a Jira | Esperá los segundos indicados y reintentá |
+| Jira no disponible (`JIRA_UNAVAILABLE`) | Caída de Jira o de la red | Reintentá más tarde |
 - Las variables `ATLASSIAN_*` (OAuth) solo se usan en el modo OAuth opcional, previsto para una futura adaptación multiusuario.
 - Tras crear tu cuenta local, deshabilitá el registro con `LOCAL_REGISTRATION_ENABLED=false`.
 

@@ -54,7 +54,7 @@ MVP phases 0–9 from `docs/IMPLEMENTATION_PLAN.md`. The license flow is now in 
   - [x] F1.4b Swagger/OpenAPI at /api/docs + openapi:export (user request, pulled from Phase 3).
   - [x] F1.5 Frontend: Vue 3 + Vite + TS + Router, lint/format/typecheck/test, base layout, login/register views, auth state, Jira connection placeholder states.
   - [x] F1.6 Phase close: commits 8807b3f (backend) and 907339d (frontend), pushed. Native review: declined by context budget (lens_context_budget_exceeded, 137 files / ~18k lines); user chose to skip. Lesson: keep commits small so each is reviewable.
-- [ ] **F2** — Jira connection (local API token; optional OAuth, D-023). Gate: with a fake Jira (HttpPort) the token never appears in logs/errors/responses; wrong/expired token yields a normalized `JIRA_REAUTH_REQUIRED`-style error distinct from empty data; unconfigured is a distinct state; 401/403/429 mapped. Small commits, one slice each (review-sized):
+- [x] **F2** — Jira connection (local API token; optional OAuth, D-023). Gate: with a fake Jira (HttpPort) the token never appears in logs/errors/responses; wrong/expired token yields a normalized `JIRA_REAUTH_REQUIRED`-style error distinct from empty data; unconfigured is a distinct state; 401/403/429 mapped. Small commits, one slice each (review-sized):
   - OAuth building blocks (kept as optional, dormant "OAuth mode"):
     - [x] F2.1 Token encryption (AES-256-GCM, key version) + env schema (Atlassian vars optional: unset = feature disabled) + migration for `jira_connections` and `oauth_states`.
     - [x] F2.2 OAuth state service (one-time, session-bound, short expiry) + Atlassian OAuth client (authorize URL, code exchange, accessible-resources, refresh) behind an injectable HTTP port; tests with a fake Atlassian.
@@ -62,7 +62,7 @@ MVP phases 0–9 from `docs/IMPLEMENTATION_PLAN.md`. The license flow is now in 
   - API token mode (default):
     - [x] F2.4 `JiraCredentialProvider.resolve(userId)` interface + `ApiTokenCredentialProvider` + env validation (`JIRA_URL`, `JIRA_USERNAME`, `JIRA_API_TOKEN` optional: unset = "not configured") + `GET /jira/connection` and a read-only "verify" action calling Jira `GET /rest/api/3/myself` returning only connected/siteUrl/displayName (never the token) + OpenAPI regenerated.
     - [x] F2.5 Frontend connection panel (not configured / verifying / connected / error / unauthorized token); regenerate API types.
-    - [ ] F2.6 Docs: create/rotate the token at id.atlassian.com (Security, API tokens), `.env` setup, troubleshooting.
+    - [x] F2.6 Docs: create/rotate the token at id.atlassian.com (Security, API tokens), `.env` setup, troubleshooting.
   - Note: OAuth HTTP layer (start/callback/connections/disconnect) + OAuth frontend + multi-user isolation tests moved to the post-MVP backlog ("Backlog post-MVP: modo multiusuario con OAuth" in `docs/IMPLEMENTATION_PLAN.md`).
 - [ ] **F3** — Jira Gateway and search/read. Gate: user sees a permitted real issue; inaccessible issues leak nothing; errors never become empty lists/0%.
 - [ ] **F4** — Metrics, subtasks and weekly SP. Gate: tests for story without subtasks, empty epic, null fields, estimate changes, in/out of period, reopen, pagination, duplicates.
@@ -104,7 +104,7 @@ MVP phases 0–9 from `docs/IMPLEMENTATION_PLAN.md`. The license flow is now in 
 
 ## Next step
 
-Finish F2.3 (dormant OAuth connections service), then F2.4 `JiraCredentialProvider` + API token provider. User fills JIRA_URL/JIRA_USERNAME/JIRA_API_TOKEN in .env by hand; code and tests use a fake Jira.
+F2 is closed (commits 4bb7080, dcc89c0, 3ae7f9a, 6c2a6b9, ccaa4ff + docs). Real check on 2026-10-09: backend with the owner's env credentials, `POST /jira/connection/verify` returned `connected` for the fpatronal site (read-only `/myself`, temp local user deleted afterwards). Next: F3 Jira Gateway search/read (REST v3 fixtures, `nextPageToken` pagination, issue-type mapping by id/hierarchyLevel, no false zeros on errors).
 
 ## Open questions
 
