@@ -57,13 +57,33 @@ interface DashboardIssueResponse {
     status: { name: string; categoryKey: string; isCancelled: boolean };
     url: string;
   }>;
+  progress: Progress;
+  children?: Array<{                       // solo épicas (hijos directos, sin subtareas)
+    key: string; summary: string;
+    issueType: { id: string; name: string; hierarchyLevel: number; isSubtask: boolean };
+    status: { name: string; categoryKey: string; isCancelled: boolean };
+    url: string;
+    storyPoints: { final: number | null; planned: number | null };
+    progress: Progress;                    // avance del hijo por sus propias subtareas
+  }>;
   metadata: { fetchedAt: string; isStale: false; warnings: string[] };
+}
+
+interface Progress {
+  basis: 'subtasks' | 'children' | 'none'; // none: no aplica (p. ej. una subtarea)
+  state: 'ok' | 'none' | 'all_cancelled';  // none/all_cancelled => percent null (nunca 0%)
+  total: number;                           // denominador (cancelados excluidos por defecto, D-024)
+  completed: number; inProgress: number; pending: number;
+  cancelled: number;                       // siempre informado aparte
+  unknown: number;                         // categoría no reconocida: nunca completado
+  percent: number | null;                  // 0-100, un decimal
+  isApproximate: boolean;                  // true si la lista de hijos se truncó en el tope (300)
 }
 ```
 
-Pendiente para las fases 4 y 5 (no se devuelven hasta poder calcularlos con código probado, para no mostrar valores falsos):
+Las épicas (nivel de jerarquía >= 1) resuelven sus hijos con `parent = "CLAVE"` paginado por `nextPageToken` (hasta 6 páginas de 50). Si se alcanza el tope, `progress.isApproximate = true` y `metadata.warnings` lo indica. Un fallo de Jira al cargar los hijos responde con el error normalizado, nunca con un avance parcial o en 0%. Las 403/404 siguen siendo indistinguibles.
 
-- `progress` (completados, total, porcentaje y base de cálculo): fase 4.
+Pendiente para la fase 5 (no se devuelven hasta poder calcularlos con código probado, para no mostrar valores falsos):
 - `weeklyStoryPoints` (SP por semana): fase 5.
 - `dependencies` (bloqueantes y bloqueados, con `inaccessible`): fase 5.
 

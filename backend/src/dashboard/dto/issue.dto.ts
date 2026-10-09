@@ -121,13 +121,85 @@ export class DashboardSubtaskDto {
   url!: string;
 }
 
-/** Only what Jira data fills truthfully today; progress, weekly SP and dependencies are phases 4-5. */
+export const PROGRESS_BASES = ['subtasks', 'children', 'none'] as const;
+export const PROGRESS_STATES = ['ok', 'none', 'all_cancelled'] as const;
+
+export class ProgressDto {
+  @ApiProperty({ enum: PROGRESS_BASES, description: 'What was counted; none = nothing applies.' })
+  basis!: (typeof PROGRESS_BASES)[number];
+
+  @ApiProperty({
+    enum: PROGRESS_STATES,
+    description:
+      'ok = percent available; none = no data (never 0%); all_cancelled = all cancelled.',
+  })
+  state!: (typeof PROGRESS_STATES)[number];
+
+  @ApiProperty({ description: 'Denominator (cancelled excluded by default, D-024).' })
+  total!: number;
+
+  @ApiProperty()
+  completed!: number;
+
+  @ApiProperty()
+  inProgress!: number;
+
+  @ApiProperty()
+  pending!: number;
+
+  @ApiProperty({ description: 'Cancelled items, always reported separately.' })
+  cancelled!: number;
+
+  @ApiProperty({ description: 'Items with an unrecognized status category (never completed).' })
+  unknown!: number;
+
+  @ApiProperty({ type: Number, nullable: true, description: '0-100, one decimal; null = no data.' })
+  percent!: number | null;
+
+  @ApiProperty({ description: 'True when the children list was truncated at the hard cap.' })
+  isApproximate!: boolean;
+}
+
+export class DashboardChildDto {
+  @ApiProperty()
+  key!: string;
+
+  @ApiProperty()
+  summary!: string;
+
+  @ApiProperty({ type: IssueTypeDto })
+  issueType!: IssueTypeDto;
+
+  @ApiProperty({ type: IssueStatusDto })
+  status!: IssueStatusDto;
+
+  @ApiProperty()
+  url!: string;
+
+  @ApiProperty({ type: StoryPointsDto })
+  storyPoints!: StoryPointsDto;
+
+  @ApiProperty({ type: ProgressDto, description: 'Progress of the child by its own subtasks.' })
+  progress!: ProgressDto;
+}
+
+/** Issue detail with progress; children only for epics. Weekly SP and dependencies are phase 5. */
 export class DashboardIssueResponseDto {
   @ApiProperty({ type: DashboardIssueDto })
   issue!: DashboardIssueDto;
 
   @ApiProperty({ type: [DashboardSubtaskDto] })
   subtasks!: DashboardSubtaskDto[];
+
+  @ApiProperty({ type: ProgressDto })
+  progress!: ProgressDto;
+
+  @ApiProperty({
+    type: [DashboardChildDto],
+    required: false,
+    description: 'Direct children (epics only; absent otherwise).',
+  })
+  children?: DashboardChildDto[];
 
   @ApiProperty({ type: IssueDetailMetadataDto })
   metadata!: IssueDetailMetadataDto;

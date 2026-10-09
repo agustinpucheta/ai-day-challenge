@@ -30,14 +30,18 @@ Dashboard local y personalizado para seguir épicas e historias de Jira Cloud. E
 
 - “Completado” = `statusCategory.key = done` leído de Jira **y** estado distinto de Cancelado (status id `10000`, configurable). No se usa `resolution` ni una lista fija de nombres en código (D-014).
 - “Cancelado” = estado Cancelado. Se excluye del avance completado y de los SP semanales consumidos, y se informa como métrica separada de “cancelados” (conteo y SP).
-- Pendiente antes de Fase 4: si los cancelados permanecen en el denominador del avance.
+- Los cancelados se excluyen del denominador del avance por defecto (D-024, configurable con `cancelledCountsInDenominator`).
 
 ### Avance por cantidad de issues
 
 - Para una historia que tiene subtareas: subtareas completadas / total de subtareas, presentado también como conteo.
 - Para una épica: issues hijos dentro del alcance / total de issues hijos dentro del alcance.
 - No mostrar 0% si no hay datos o hay un error. Mostrar “Sin subtareas”, “Sin estimación” o “No disponible”, según corresponda.
-- Evitar doble contabilización por consultas solapadas y jerarquías.
+- Evitar doble contabilización por consultas solapadas y jerarquías (deduplicación por clave).
+- Vocabulario de estado del avance (`progress.state`): `ok` (hay porcentaje), `none` (sin datos: historia sin subtareas o épica sin hijos; `percent: null`, nunca 0%) y `all_cancelled` (todos cancelados; `percent: null`). Un error de Jira es un error HTTP, nunca un 0%.
+- El porcentaje se informa con un decimal (0–100). Las categorías desconocidas cuentan en `unknown`, no como completadas, y agregan una advertencia.
+- Si la lista de hijos de una épica supera el tope (300), el avance se marca `isApproximate: true` y se agrega una advertencia en `metadata.warnings`.
+- Cada hijo de una épica incluye su propio avance por subtareas. Esta fase es solo por cantidad (sin ponderar por SP).
 
 ### Story points completados por semana
 

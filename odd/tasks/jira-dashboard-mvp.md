@@ -70,8 +70,14 @@ MVP phases 0–9 from `docs/IMPLEMENTATION_PLAN.md`. The license flow is now in 
   - [x] F3.3 Frontend: search + issue detail with loading/error/empty/forbidden/stale states; regenerate API types.
   - [x] F3.4 Docs + real read-only check against the owner's Jira.
 - [ ] **F4** — Metrics, subtasks and weekly SP. Gate: tests for story without subtasks, empty epic, null fields, estimate changes, in/out of period, reopen, pagination, duplicates.
+  - Reordered by user request (2026-10-09): first "followed issues with their stories and progress %" = F4.1 + F6.1 + F4.2; weekly SP / changelog (F4.3) after that. Default (changeable): cancelled issues are excluded from the progress denominator and reported separately (D-024).
+  - [x] F4.1 Backend progress: pure `computeProgress` (completed = done && !cancelled; cancelled excluded from denominator and counted apart; no subtasks -> state `none`, percent null; all cancelled -> `all_cancelled`; unknown category counted, warned), epic children resolution (`parent = KEY` paged search with subtasks field, cap + truncation warning, de-duplicated), extend `GET /dashboard/issues/:key` with `progress` and (epics) `children[]` each with own progress; table tests for boundaries; OpenAPI.
+  - [ ] F4.2 Frontend progress UI: progress bar (role=progressbar), counts, "No subtasks"/"Not available"/cancelled states, children list for epics, in the issue detail.
+  - [ ] F4.3 Weekly consumed SP from changelog (StoryPoint Finales, first real entry to completed, from==to filtered, approximate flag) — after the tracking list.
 - [ ] **F5** — Blocking dependencies. Gate: fixtures for both link directions and an external blocker; direction not inverted.
 - [ ] **F6** — Per-user preferences and tracking. Gate: two users have different tracked lists; data never crosses.
+  - [ ] F6.1 Backend tracking: `tracked_issues` table (unique per user+issue key; site host instead of connection id under D-023), `POST/GET/DELETE /users/me/tracked-issues` (idempotent add/remove, issue must be readable through Jira before saving), GET returns each tracked issue with live progress (bounded concurrency, per-item errors never fail the whole list, never fake 0%), isolation tests.
+  - [ ] F6.2 Frontend "My tracking" page: cards with progress bar and counts, expandable stories, Track/Untrack from search results and issue detail, per-item error/stale states.
 - [ ] **F7** — State transitions with user permissions. Gate: unauthorized user cannot transition; arbitrary transition IDs rejected; operation audited.
 - [ ] **F8** — Base end-to-end hardening of phases 1–7 (MVP closure happens at F9). Gate: fresh setup from README; typecheck/lint/tests pass; no secrets; metrics verified against Jira.
 - [ ] **F9** — License tickets from the dashboard (last MVP phase; closes the MVP, D-020/D-021). Gate: Jira-mock tests prove no ticket without confirmation, no duplicates, user isolation, invalid/inaccessible epic rejected without leaks, deterministic drafts, AI off/failing keeps manual flow, no real Jira writes in tests; one real ticket created once, manually, in an environment the user explicitly authorizes.
@@ -112,7 +118,7 @@ F2 is closed (commits 4bb7080, dcc89c0, 3ae7f9a, 6c2a6b9, ccaa4ff + docs). Real 
 
 ## Open questions
 
-1. Do cancelled issues stay in the progress denominator? (resolve before F4)
+1. RESOLVED (D-024): cancelled issues are excluded from the progress denominator by default (configurable).
 2. Does REST `/rest/api/3/issue/{key}/changelog` paginate beyond 100 entries as expected? (verify in F3)
 3. How does Jira respond when a linked issue is not readable by the user? (needs a second account; F5)
 4. `docs/API_CONTRACTS.md` lacks fields for the cancelled metric and planning deviation (update before F4).

@@ -1,5 +1,18 @@
 import { JiraInvalidQueryError } from './errors';
-import { MAX_QUERY_LENGTH, buildSearchJql } from './jira-jql';
+import { MAX_QUERY_LENGTH, buildChildrenJql, buildSearchJql } from './jira-jql';
+
+describe('buildChildrenJql', () => {
+  it('builds a parent clause with a stable order and an upper-cased key', () => {
+    expect(buildChildrenJql('demo-1')).toBe('parent = "DEMO-1" ORDER BY key ASC');
+  });
+
+  it.each([['DEMO-1" OR 1=1 --'], ['DEMO-1\n'], ['hello'], [''], ['DEMO-']])(
+    'rejects the invalid key %p without building a query',
+    (key) => {
+      expect(() => buildChildrenJql(key)).toThrow(JiraInvalidQueryError);
+    },
+  );
+});
 
 const LS = String.fromCharCode(0x2028);
 const ORDER = ' ORDER BY updated DESC';

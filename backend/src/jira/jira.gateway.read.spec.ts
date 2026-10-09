@@ -263,3 +263,115 @@ describe('JiraGateway.getIssue', () => {
     expect(leaks(error)).toEqual([]);
   });
 });
+
+describe('JiraGateway.getChildren', () => {
+  type RawIssue = Record<string, unknown> & { fields: Record<string, unknown> };
+  const template = (jiraFixture('children-truncated-page') as { issues: RawIssue[] }).issues[0];
+  if (template === undefined) throw new Error('missing fixture');
+  const withKey = (key: string): RawIssue => ({ ...template, key });
+  const page = (keys: string[], nextPageToken?: string) => ({
+    issues: keys.map(withKey),
+    ...(nextPageToken === undefined ? { isLast: true } : { nextPageToken, isLast: false }),
+  });
+
+  it('searches parent = "KEY", follows the token and merges pages', async () => {
+    const { http, gateway } = setup([
+      ok(jiraFixture('children-page-1')),
+      ok(jiraFixture('children-last-page')),
+    ]);
+    const result = await gateway.getChildren('u1', 'demo-1');
+    expect(result.children.map((child) => child.key)).toEqual(['DEMO-2', 'DEMO-8', 'DEMO-20']);
+    expect(result.truncated).toBe(false);
+    expect(result.fetchedAt).toMatch(/^\d{4}-\d{2}-\d{2}T.*Z$/);
+    expect(http.calls).toHaveLength(2);
+    expect(http.calls[0]?.body).toEqual({
+      jql: 'parent = "DEMO-1" ORDER BY key ASC',
+      fields: JIRA_ISSUE_FIELDS,
+      maxResults: 50,
+    });
+    expect(http.calls[1]?.body).toMatchObject({
+      nextPageToken: 'children-token-2',
+      maxResults: 50,
+    });
+  });
+
+  it('keeps the subtasks with their status on each child (no extra call)', async () => {
+    const { http, gateway } = setup([
+      ok(jiraFixture('children-page-1')),
+      ok(jiraFixture('children-last-page')),
+    ]);
+    const result = await gateway.getChildren('u1', 'DEMO-1');
+    expect(result.children[0]?.subtasks.map((s) => s.status.categoryKey)).toEqual([
+      'done',
+      'done',
+      'new',
+    ]);
+    expect(http.calls).toHaveLength(2);
+  });
+
+  it('returns an empty list for an epic without children', async () => {
+    const { gateway } = setup([ok(jiraFixture('search-empty'))]);
+    await expect(gateway.getChildren('u1', 'DEMO-1')).resolves.toMatchObject({
+      children: [],
+      truncated: false,
+    });
+  });
+
+  it('stops at the hard cap (6 pages) and flags the list as truncated', async () => {
+    const pages = Array.from({ length: 7 }, (_v, i) =>
+      ok(page([`DEMO-${100 + i}`], `token-${i + 1}`)),
+    );
+    const { http, gateway } = setup(pages);
+    const result = await gateway.getChildren('u1', 'DEMO-1');
+    expect(http.calls).toHaveLength(6);
+    expect(result.truncated).toBe(true);
+    expect(result.children).toHaveLength(6);
+  });
+
+  it('is not truncated when the last page arrives exactly at the cap', async () => {
+    const pages = [
+      ...Array.from({ length: 5 }, (_v, i) => ok(page([`DEMO-${100 + i}`], `token-${i + 1}`))),
+      ok(page(['DEMO-200'])),
+    ];
+    const { http, gateway } = setup(pages);
+    const result = await gateway.getChildren('u1', 'DEMO-1');
+    expect(http.calls).toHaveLength(6);
+    expect(result.truncated).toBe(false);
+  });
+
+  it('drops duplicates by key, the parent itself and subtask-type issues', async () => {
+    const subtaskType = { id: '10003', name: 'Sub-task', subtask: true, hierarchyLevel: -1 };
+    const asSubtask = {
+      ...withKey('DEMO-77'),
+      fields: { ...template.fields, issuetype: subtaskType },
+    };
+    const { gateway } = setup([
+      ok({
+        issues: [withKey('DEMO-30'), withKey('DEMO-30'), asSubtask, withKey('DEMO-1')],
+        isLast: true,
+      }),
+    ]);
+    const result = await gateway.getChildren('u1', 'DEMO-1');
+    expect(result.children.map((child) => child.key)).toEqual(['DEMO-30']);
+  });
+
+  it('rejects an invalid key before any HTTP call', async () => {
+    const { http, gateway } = setup([]);
+    await expect(gateway.getChildren('u1', 'DEMO-1" OR 1=1')).rejects.toBeInstanceOf(
+      JiraInvalidQueryError,
+    );
+    expect(http.calls).toHaveLength(0);
+  });
+
+  it.each(FAILURES)('throws a typed error, never a partial list, on %s', async (_l, next, type) => {
+    const { gateway } = setup([next]);
+    const error = await failureOf(gateway.getChildren('u1', 'DEMO-1'));
+    expect(error).toBeInstanceOf(type);
+    expect(leaks(error)).toEqual([]);
+  });
+
+  it('fails when a later page fails, discarding what was already read', async () => {
+    const { gateway } = setup([ok(jiraFixture('children-page-1')), failed(500)]);
+    await expect(gateway.getChildren('u1', 'DEMO-1')).rejects.toBeInstanceOf(JiraUnavailableError);
+  });
+});

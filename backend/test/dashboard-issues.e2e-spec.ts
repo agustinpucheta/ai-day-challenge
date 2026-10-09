@@ -228,7 +228,17 @@ describe('Jira issue search and dashboard issue (e2e)', () => {
         isStale: false,
         warnings: [],
       });
-      expect(res.body).not.toHaveProperty('progress');
+      expect(res.body.progress).toMatchObject({
+        basis: 'subtasks',
+        state: 'ok',
+        total: 2,
+        completed: 1,
+        pending: 1,
+        cancelled: 1,
+        percent: 50,
+        isApproximate: false,
+      });
+      expect(res.body).not.toHaveProperty('children');
       expect(jira.gets).toHaveLength(1);
       expect(jira.gets[0]).toContain(`${SITE}/rest/api/3/issue/DEMO-2?fields=`);
       expectNoSecrets(res);
@@ -241,6 +251,131 @@ describe('Jira issue search and dashboard issue (e2e)', () => {
       expect(res.body.issue.storyPoints).toEqual({ final: null, planned: null });
       expect(res.body.issue.parentKey).toBeNull();
       expect(res.body.subtasks).toEqual([]);
+      expect(res.body.progress).toMatchObject({ basis: 'subtasks', state: 'none', percent: null });
+      expect(res.body.progress.percent).not.toBe(0);
+    });
+
+    describe('epic progress and children', () => {
+      /** Serves the epic on GET and the given children pages (in order) on POST. */
+      function serveEpic(pages: unknown[]): void {
+        jira.onGet = () => ok(jiraFixture('epic'));
+        let index = 0;
+        jira.onPost = () => ok(pages[Math.min(index++, pages.length - 1)]);
+      }
+
+      it('returns the children with their own subtask progress and the epic progress', async () => {
+        await start();
+        serveEpic([jiraFixture('children-page-1'), jiraFixture('children-last-page')]);
+        const res = await agent.get(`${ISSUE}/DEMO-1`).expect(200);
+        expect(res.body.progress).toEqual({
+          basis: 'children',
+          state: 'ok',
+          total: 2,
+          completed: 0,
+          inProgress: 1,
+          pending: 1,
+          cancelled: 1,
+          unknown: 0,
+          percent: 0,
+          isApproximate: false,
+        });
+        expect(keysOf(res.body.children)).toEqual(['DEMO-2', 'DEMO-8', 'DEMO-20']);
+        expect(res.body.children[0]).toMatchObject({
+          summary: 'Story with subtasks',
+          url: `${SITE}/browse/DEMO-2`,
+          storyPoints: { final: null, planned: null },
+          progress: { basis: 'subtasks', state: 'ok', total: 2, completed: 1, percent: 50 },
+        });
+        expect(res.body.children[1].progress).toMatchObject({ state: 'none', percent: null });
+        expect(res.body.children[2].status).toMatchObject({ isCancelled: true });
+        expect(res.body.metadata.warnings).toEqual([]);
+        expect(jira.posts).toHaveLength(2);
+        expect(post(0).body.jql).toBe('parent = "DEMO-1" ORDER BY key ASC');
+        expect(post(1).body.nextPageToken).toBe('children-token-2');
+        expectNoSecrets(res);
+      });
+
+      it('reports "none" for an epic without children (not 0%)', async () => {
+        await start();
+        serveEpic([jiraFixture('search-empty')]);
+        const res = await agent.get(`${ISSUE}/DEMO-1`).expect(200);
+        expect(res.body.children).toEqual([]);
+        expect(res.body.progress).toMatchObject({
+          basis: 'children',
+          state: 'none',
+          percent: null,
+        });
+      });
+
+      it('reports all_cancelled when every child is cancelled', async () => {
+        await start();
+        serveEpic([jiraFixture('children-all-cancelled')]);
+        const res = await agent.get(`${ISSUE}/DEMO-1`).expect(200);
+        expect(res.body.progress).toMatchObject({
+          state: 'all_cancelled',
+          percent: null,
+          total: 0,
+          cancelled: 2,
+        });
+      });
+
+      it('flags a truncated children list as approximate with a warning', async () => {
+        await start();
+        const more = (token: number) => ({
+          ...(jiraFixture('children-truncated-page') as object),
+          nextPageToken: `t${token}`,
+        });
+        serveEpic([1, 2, 3, 4, 5, 6, 7].map(more));
+        const res = await agent.get(`${ISSUE}/DEMO-1`).expect(200);
+        expect(jira.posts).toHaveLength(6);
+        expect(res.body.progress.isApproximate).toBe(true);
+        expect(res.body.metadata.warnings).toContain(
+          'Children list truncated at 300: progress is approximate',
+        );
+      });
+
+      it('counts unknown subtask categories as unknown with a warning', async () => {
+        await start();
+        serveEpic([jiraFixture('children-unknown-subtask')]);
+        const res = await agent.get(`${ISSUE}/DEMO-1`).expect(200);
+        expect(res.body.children[0].progress).toMatchObject({ unknown: 1, completed: 1, total: 2 });
+        expect(res.body.metadata.warnings).toHaveLength(1);
+      });
+
+      it.each([
+        ['500', failed(500), 503, 'JIRA_UNAVAILABLE'],
+        ['429', failed(429, { 'retry-after': '9' }), 429, 'JIRA_RATE_LIMITED'],
+        ['403', failed(403), 424, 'JIRA_FORBIDDEN'],
+        ['a network error', new Error(`ECONNRESET ${TOKEN}`), 503, 'JIRA_UNAVAILABLE'],
+      ])(
+        'answers an error (not 200 with zeros) when children fail with %s',
+        async (_l, r, s, c) => {
+          await start();
+          jira.onGet = () => ok(jiraFixture('epic'));
+          jira.onPost = () => r;
+          const res = await agent.get(`${ISSUE}/DEMO-1`).expect(s);
+          expect(res.body.code).toBe(c);
+          expect(res.body).not.toHaveProperty('progress');
+          expect(res.body).not.toHaveProperty('children');
+          expectNoSecrets(res);
+        },
+      );
+
+      it('answers an error when a later children page fails', async () => {
+        await start();
+        jira.onGet = () => ok(jiraFixture('epic'));
+        jira.onPost = (body) =>
+          body.nextPageToken === undefined ? ok(jiraFixture('children-page-1')) : failed(500);
+        const res = await agent.get(`${ISSUE}/DEMO-1`).expect(503);
+        expect(res.body).not.toHaveProperty('progress');
+      });
+
+      it('does not search children for a non-epic issue', async () => {
+        await start();
+        jira.onGet = () => ok(jiraFixture('story-with-subtasks'));
+        await agent.get(`${ISSUE}/DEMO-2`).expect(200);
+        expect(jira.posts).toHaveLength(0);
+      });
     });
 
     it('answers the same 404 for a missing and a forbidden issue, byte for byte', async () => {

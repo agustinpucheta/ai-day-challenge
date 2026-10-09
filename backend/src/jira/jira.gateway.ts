@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   JIRA_CREDENTIAL_PROVIDER,
   type JiraCredentialProvider,
+  type JiraRequestAuth,
 } from './credentials/jira-credential-provider';
 import {
   JiraBadRequestError,
@@ -14,9 +15,14 @@ import {
   JiraUnauthorizedError,
   JiraUnavailableError,
 } from './errors';
-import { ISSUE_KEY_PATTERN, buildSearchJql } from './jira-jql';
+import { ISSUE_KEY_PATTERN, buildChildrenJql, buildSearchJql } from './jira-jql';
 import { JIRA_CONFIG, JIRA_ISSUE_FIELDS } from './jira.config';
-import type { JiraIssuePage, JiraIssueResult } from './model/jira-issue';
+import type {
+  JiraChildrenResult,
+  JiraIssue,
+  JiraIssuePage,
+  JiraIssueResult,
+} from './model/jira-issue';
 import { mapJiraIssue } from './model/jira-issue.mapper';
 import { HTTP_PORT, type HttpPort, type HttpResult } from './oauth/http-port';
 
@@ -85,6 +91,50 @@ export class JiraGateway {
     }
     const jql = buildSearchJql(input.query, { issueTypeIds: input.issueTypeIds });
     const auth = await this.credentials.resolve(userId);
+    return this.searchPage(auth, jql, pageSize, pageToken);
+  }
+
+  /**
+   * Direct children of `parentKey` (`parent = "KEY"`), following `nextPageToken` until the last
+   * page or the hard cap (`JIRA_CONFIG.children`). Subtask-type issues and the parent itself are
+   * never children, and duplicates by key are dropped. Any failure throws: a partial list is
+   * only returned, flagged `truncated`, when the cap is reached.
+   */
+  async getChildren(userId: string, parentKey: string): Promise<JiraChildrenResult> {
+    const jql = buildChildrenJql(parentKey);
+    const auth = await this.credentials.resolve(userId);
+    const { pageSize, maxPages } = JIRA_CONFIG.children;
+    const children = new Map<string, JiraIssue>();
+    let pageToken: string | null = null;
+    for (let page = 1; page <= maxPages; page += 1) {
+      const result: JiraIssuePage = await this.searchPage(
+        auth,
+        jql,
+        pageSize,
+        pageToken ?? undefined,
+      );
+      for (const issue of result.issues) {
+        const isParent = issue.key.toUpperCase() === parentKey.toUpperCase();
+        if (!isParent && !issue.issueType.isSubtask && !children.has(issue.key)) {
+          children.set(issue.key, issue);
+        }
+      }
+      pageToken = result.nextPageToken;
+      if (pageToken === null) break;
+    }
+    return {
+      children: [...children.values()],
+      truncated: pageToken !== null,
+      fetchedAt: new Date().toISOString(),
+    };
+  }
+
+  private async searchPage(
+    auth: JiraRequestAuth,
+    jql: string,
+    pageSize: number,
+    pageToken: string | undefined,
+  ): Promise<JiraIssuePage> {
     const body = {
       jql,
       fields: JIRA_ISSUE_FIELDS,

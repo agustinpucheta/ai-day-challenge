@@ -1,0 +1,126 @@
+{
+  "issues": [
+    {
+      "expand": "operations",
+      "id": "30",
+      "self": "https://example.atlassian.net/rest/api/3/issue/30",
+      "key": "DEMO-30",
+      "fields": {
+        "summary": "Truncated child A",
+        "issuetype": {
+          "id": "10001",
+          "name": "Story",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "status": {
+          "id": "10016",
+          "name": "Closed",
+          "statusCategory": {
+            "id": 1,
+            "key": "done",
+            "name": "done"
+          }
+        },
+        "project": {
+          "id": "10100",
+          "key": "DEMO",
+          "name": "Demo project"
+        },
+        "resolution": null,
+        "created": "2026-09-01T10:00:00.000-0300",
+        "updated": "2026-10-01T10:00:00.000-0300",
+        "issuelinks": [],
+        "subtasks": [],
+        "customfield_10013": "DEMO-1",
+        "customfield_10023": null,
+        "customfield_10204": null,
+        "parent": {
+          "id": "1",
+          "key": "DEMO-1",
+          "self": "https://example.atlassian.net/rest/api/3/issue/1",
+          "fields": {
+            "summary": "Demo epic",
+            "status": {
+              "id": "3",
+              "name": "In progress",
+              "statusCategory": {
+                "id": 1,
+                "key": "indeterminate",
+                "name": "indeterminate"
+              }
+            },
+            "issuetype": {
+              "id": "10000",
+              "name": "Epic",
+              "subtask": false,
+              "hierarchyLevel": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "expand": "operations",
+      "id": "31",
+      "self": "https://example.atlassian.net/rest/api/3/issue/31",
+      "key": "DEMO-31",
+      "fields": {
+        "summary": "Truncated child B",
+        "issuetype": {
+          "id": "10001",
+          "name": "Story",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "status": {
+          "id": "1",
+          "name": "Open",
+          "statusCategory": {
+            "id": 1,
+            "key": "new",
+            "name": "new"
+          }
+        },
+        "project": {
+          "id": "10100",
+          "key": "DEMO",
+          "name": "Demo project"
+        },
+        "resolution": null,
+        "created": "2026-09-01T10:00:00.000-0300",
+        "updated": "2026-10-01T10:00:00.000-0300",
+        "issuelinks": [],
+        "subtasks": [],
+        "customfield_10013": "DEMO-1",
+        "customfield_10023": null,
+        "customfield_10204": null,
+        "parent": {
+          "id": "1",
+          "key": "DEMO-1",
+          "self": "https://example.atlassian.net/rest/api/3/issue/1",
+          "fields": {
+            "summary": "Demo epic",
+            "status": {
+              "id": "3",
+              "name": "In progress",
+              "statusCategory": {
+                "id": 1,
+                "key": "indeterminate",
+                "name": "indeterminate"
+              }
+            },
+            "issuetype": {
+              "id": "10000",
+              "name": "Epic",
+              "subtask": false,
+              "hierarchyLevel": 1
+            }
+          }
+        }
+      }
+    }
+  ],
+  "nextPageToken": "children-token-more",
+  "isLast": false
+}

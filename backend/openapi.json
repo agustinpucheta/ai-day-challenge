@@ -1200,6 +1200,111 @@
           "url"
         ]
       },
+      "ProgressDto": {
+        "type": "object",
+        "properties": {
+          "basis": {
+            "type": "string",
+            "enum": [
+              "subtasks",
+              "children",
+              "none"
+            ],
+            "description": "What was counted; none = nothing applies."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "none",
+              "all_cancelled"
+            ],
+            "description": "ok = percent available; none = no data (never 0%); all_cancelled = all cancelled."
+          },
+          "total": {
+            "type": "number",
+            "description": "Denominator (cancelled excluded by default, D-024)."
+          },
+          "completed": {
+            "type": "number"
+          },
+          "inProgress": {
+            "type": "number"
+          },
+          "pending": {
+            "type": "number"
+          },
+          "cancelled": {
+            "type": "number",
+            "description": "Cancelled items, always reported separately."
+          },
+          "unknown": {
+            "type": "number",
+            "description": "Items with an unrecognized status category (never completed)."
+          },
+          "percent": {
+            "type": "number",
+            "nullable": true,
+            "description": "0-100, one decimal; null = no data."
+          },
+          "isApproximate": {
+            "type": "boolean",
+            "description": "True when the children list was truncated at the hard cap."
+          }
+        },
+        "required": [
+          "basis",
+          "state",
+          "total",
+          "completed",
+          "inProgress",
+          "pending",
+          "cancelled",
+          "unknown",
+          "percent",
+          "isApproximate"
+        ]
+      },
+      "DashboardChildDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "issueType": {
+            "$ref": "#/components/schemas/IssueTypeDto"
+          },
+          "status": {
+            "$ref": "#/components/schemas/IssueStatusDto"
+          },
+          "url": {
+            "type": "string"
+          },
+          "storyPoints": {
+            "$ref": "#/components/schemas/StoryPointsDto"
+          },
+          "progress": {
+            "description": "Progress of the child by its own subtasks.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProgressDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "summary",
+          "issueType",
+          "status",
+          "url",
+          "storyPoints",
+          "progress"
+        ]
+      },
       "IssueDetailMetadataDto": {
         "type": "object",
         "properties": {
@@ -1238,6 +1343,16 @@
               "$ref": "#/components/schemas/DashboardSubtaskDto"
             }
           },
+          "progress": {
+            "$ref": "#/components/schemas/ProgressDto"
+          },
+          "children": {
+            "description": "Direct children (epics only; absent otherwise).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardChildDto"
+            }
+          },
           "metadata": {
             "$ref": "#/components/schemas/IssueDetailMetadataDto"
           }
@@ -1245,6 +1360,7 @@
         "required": [
           "issue",
           "subtasks",
+          "progress",
           "metadata"
         ]
       },

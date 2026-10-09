@@ -47,6 +47,13 @@ export interface JiraIssueResult {
   fetchedAt: string;
 }
 
+/** Direct children of an issue. `truncated` means the hard cap was hit: the list is partial. */
+export interface JiraChildrenResult {
+  children: JiraIssue[];
+  truncated: boolean;
+  fetchedAt: string;
+}
+
 /** Completed means category `done` and not the configured cancelled status (D-014). */
 export function isCompleted(status: Pick<JiraStatus, 'categoryKey' | 'isCancelled'>): boolean {
   return status.categoryKey === JIRA_CONFIG.doneCategoryKey && !status.isCancelled;

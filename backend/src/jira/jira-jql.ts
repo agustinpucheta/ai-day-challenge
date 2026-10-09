@@ -37,6 +37,15 @@ export function buildSearchJql(input: string, options: BuildJqlOptions = {}): st
   return `${clauses.join(' AND ')} ORDER BY updated DESC`;
 }
 
+/**
+ * JQL for the direct children of an issue (`parent = "KEY"`). The key is validated against the
+ * key pattern first and never concatenated raw; the order is stable so token paging is safe.
+ */
+export function buildChildrenJql(parentKey: string): string {
+  if (!ISSUE_KEY_PATTERN.test(parentKey)) throw new JiraInvalidQueryError();
+  return `parent = "${parentKey.toUpperCase()}" ORDER BY key ASC`;
+}
+
 function keyClause(key: string): string {
   return `key = "${key.toUpperCase()}"`;
 }

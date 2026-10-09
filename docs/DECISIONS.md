@@ -66,7 +66,7 @@
 
 **Decisión:** "completado" = `statusCategory.key = done` **y** estado distinto de Cancelado (status id `10000`, configurable, obtenido del descubrimiento). Los issues cancelados se excluyen del avance completado y de los SP semanales consumidos, y se informan como una métrica separada de "cancelados".
 
-**Pendiente (resolver antes de Fase 4):** si los issues cancelados permanecen en el denominador del avance.
+**Resuelto por D-024:** los cancelados se excluyen del denominador del avance por defecto.
 
 ## D-015 — Rama de trabajo
 
@@ -177,3 +177,13 @@
 **Qué se mantiene:** los módulos OAuth ya construidos (F2.1 cifrado de tokens y tablas `jira_connections`/`oauth_states`; F2.2 servicio de `state` y cliente Atlassian; F2.3 servicio de conexiones con refresh rotatorio) quedan como "modo OAuth" opcional y dormido.
 
 **Qué pasa a post-MVP:** endpoints OAuth (start/callback/connections/disconnect), flujo OAuth del frontend, pruebas de aislamiento multiusuario y la adaptación a varias personas (ver "Backlog post-MVP: modo multiusuario con OAuth" en `docs/IMPLEMENTATION_PLAN.md`). Con OAuth la base URL del gateway sería `api.atlassian.com/ex/jira/{cloudId}`.
+
+## D-024 — Cancelados fuera del denominador del avance (configurable)
+
+**Fecha:** 2026-10-09. **Resuelve:** el pendiente de D-014.
+
+**Decisión:** por defecto, los issues cancelados (estado Cancelado, D-014) se **excluyen del denominador** del avance y se informan aparte en `cancelled`. El porcentaje es `completados / total * 100`, con un decimal (`Math.round(x * 10) / 10`), donde `total = completados + en curso + pendientes + desconocidos`. Es configurable mediante la constante tipada `cancelledCountsInDenominator` (por defecto `false`) en `backend/src/jira/jira.config.ts`: con `true`, los cancelados suman al `total` como no completados.
+
+**Motivos:** un issue cancelado ya no es trabajo por hacer; contarlo como pendiente impediría llegar a 100 %. Sigue visible en `cancelled`, así que no se oculta.
+
+**Consecuencias:** si todos los elementos están cancelados, `total = 0`, `percent = null` y `state = all_cancelled` (no 0 %). Sin elementos, `state = none`. Las categorías desconocidas cuentan en `unknown`, nunca como completadas, y generan una advertencia.

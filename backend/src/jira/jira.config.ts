@@ -29,6 +29,18 @@ export const JIRA_CONFIG = {
   cancelledStatusId: '10000',
   /** Page size bounds for the enhanced search (the MCP limit observed was 1..50). */
   search: { defaultPageSize: 20, maxPageSize: 50 },
+  /** Issue types at this hierarchy level or above (epics) have children resolved via `parent`. */
+  childrenMinHierarchyLevel: 1,
+  /**
+   * Hard cap for the children of one epic: `pageSize * maxPages` (= 300). Hitting it marks the
+   * progress as approximate and adds a warning (never a silent truncation).
+   */
+  children: { pageSize: 50, maxPages: 6 },
+  /**
+   * D-024: cancelled issues are excluded from the progress denominator by default and reported
+   * separately. Set to true to count them as not completed instead.
+   */
+  cancelledCountsInDenominator: false,
 } as const;
 
 export type JiraStatusCategoryKey = (typeof JIRA_CONFIG.statusCategoryKeys)[number];

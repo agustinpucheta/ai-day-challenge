@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { toAppException } from '../jira/jira-error.mapper';
+import { JIRA_CONFIG } from '../jira/jira.config';
 import { JiraGateway } from '../jira/jira.gateway';
 import type { DashboardIssueResponseDto, IssueSearchResponseDto } from './dto/issue.dto';
 import type { SearchIssuesQueryDto } from './dto/search-issues-query.dto';
@@ -33,7 +34,16 @@ export class DashboardService {
   async getIssue(userId: string, issueKey: string): Promise<DashboardIssueResponseDto> {
     try {
       const { issue, fetchedAt } = await this.gateway.getIssue(userId, issueKey);
-      return toDashboardIssueResponse(issue, fetchedAt);
+      if (issue.issueType.hierarchyLevel < JIRA_CONFIG.childrenMinHierarchyLevel) {
+        return toDashboardIssueResponse(issue, fetchedAt);
+      }
+      // Any failure here propagates as an error: never a partial or zero progress.
+      const {
+        children,
+        truncated,
+        fetchedAt: childrenFetchedAt,
+      } = await this.gateway.getChildren(userId, issue.key);
+      return toDashboardIssueResponse(issue, childrenFetchedAt, { children, truncated });
     } catch (error) {
       throw toAppException(error);
     }

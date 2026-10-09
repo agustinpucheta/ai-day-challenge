@@ -35,7 +35,7 @@
 ## Pipeline D — Calcular avance/subtareas
 
 - Completado = `statusCategory.key = done` **y** estado distinto de Cancelado (status id configurable, `10000` según descubrimiento). No usar `resolution` (D-014).
-- Cancelados: excluir del conteo de completados y reportar como métrica separada `cancelled` (conteo y SP). Su inclusión en el denominador queda pendiente de decisión antes de Fase 4.
+- Cancelados: excluir del conteo de completados y reportar como métrica separada `cancelled` (conteo y SP). Por defecto quedan fuera del denominador y se informan aparte (D-024); es configurable con `cancelledCountsInDenominator`.
 - Historia con subtareas: reportar completadas, pendientes, canceladas y total; porcentaje = completadas / total * 100. Si total=0, devolver `null` y `subtaskState='none'`.
 - Épica: contar issues hijos sin duplicados; porcentaje por cantidad = completados / total * 100. No contar la épica misma como hijo.
 - Tipos de issue se identifican por id / `hierarchyLevel` / `subtask`, no por nombre visible.
