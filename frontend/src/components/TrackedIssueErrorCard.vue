@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import type { TrackedItem } from '@/tracking/useTrackedList';
 import { describeFailure } from '@/tracking/errorCopy';
+import LineProgress from './LineProgress.vue';
 import StopTrackingControl from './StopTrackingControl.vue';
 
 /**
@@ -31,11 +32,13 @@ const titleId = computed(() => `tracked-${props.item.id}-title`);
     :aria-labelledby="titleId"
     :aria-busy="retrying"
   >
+    <span class="tracked-card__tab tracked-card__tab--broken" aria-hidden="true"></span>
     <h2 :id="titleId" class="tracked-card__key">
       <RouterLink :to="{ name: 'issue', params: { key: item.issueKey } }">{{
         item.issueKey
       }}</RouterLink>
     </h2>
+    <LineProgress broken :label="`${item.issueKey} progress`" />
     <div class="alert alert--error">
       <strong>{{ compact ? 'Could not load this issue' : copy.title }}</strong>
       <p v-if="!compact">{{ copy.text }}</p>

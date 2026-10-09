@@ -28,3 +28,25 @@ describe('TrackedIssueCard available chip', () => {
     );
   });
 });
+
+describe('TrackedIssueCard transit line', () => {
+  it('draws the progress as a line in a stable ink, with the exact counts in words', () => {
+    const first = mountCard(okItem('MASIN-1'));
+    const again = mountCard(okItem('MASIN-1'));
+
+    const line = first.get('.line-progress');
+    expect(line.attributes('data-tone')).toBe(again.get('.line-progress').attributes('data-tone'));
+    expect(first.get('article').attributes('data-tone')).toBe(line.attributes('data-tone'));
+    expect(first.get('[role="progressbar"]').attributes('aria-label')).toBe('MASIN-1 progress');
+    expect(first.text()).toContain('7 of 12 done · 3 in progress · 2 pending · 1 cancelled');
+    expect(first.find('.tracked-card__tab').exists()).toBe(true);
+  });
+
+  it('draws a station for each available item', () => {
+    const wrapper = mountCard(
+      okItem('MASIN-1', { progress: progress({ pending: 3, available: 2 }) }),
+    );
+
+    expect(wrapper.findAll('[data-station="available"]')).toHaveLength(2);
+  });
+});

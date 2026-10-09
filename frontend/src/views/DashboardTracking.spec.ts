@@ -149,9 +149,9 @@ describe('My tracking dashboard', () => {
       expect(cards(wrapper).map((c) => c.get('h2').text())).toEqual(['MASIN-2', 'MASIN-1']);
       const [first, second] = cards(wrapper);
       expect(first!.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('33.3');
-      expect(first!.get('.progress__value').text()).toBe('33.3%');
+      expect(first!.get('.line-progress__percent').text()).toBe('33.3%');
       expect(second!.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('100');
-      expect(second!.get('.progress__value').text()).toBe('100%');
+      expect(second!.get('.line-progress__percent').text()).toBe('100%');
       expect(first!.text()).toContain('7 of 12 done · 3 in progress · 2 pending · 1 cancelled');
     });
 
@@ -283,6 +283,8 @@ describe('My tracking dashboard', () => {
       expect(failed.text()).not.toContain('%');
       expect(failed.text()).not.toContain(' of ');
       expect(failed.find('.progress').exists()).toBe(false);
+      expect(failed.get('.line-progress').attributes('data-state')).toBe('broken');
+      expect(failed.find('.line-progress__percent').exists()).toBe(false);
       expect(wrapper.findAll('[role="progressbar"]')).toHaveLength(2);
       // not-found is permanent: no Retry, but it can be removed
       expect(button(failed, 'Retry')).toBeUndefined();
@@ -431,7 +433,7 @@ describe('My tracking dashboard', () => {
       await flushPromises();
 
       expect(callsTo(calls, LIST_REFRESH)).toHaveLength(1);
-      expect(card(wrapper, 'MASIN-1').get('.progress__value').text()).toBe('90%');
+      expect(card(wrapper, 'MASIN-1').get('.line-progress__percent').text()).toBe('90%');
       expect(wrapper.get('time').attributes('datetime')).toBe('2026-10-09T13:45:00.000Z');
     });
 
@@ -523,7 +525,7 @@ describe('My tracking dashboard', () => {
       const epic = card(wrapper, 'EPIC-1');
       expect(epic.get('[role="alert"]').text()).toContain('Jira is unavailable');
       // the epic's own progress is untouched by the failed stories request
-      expect(epic.get('.progress__value').text()).toBe('58.3%');
+      expect(epic.get('.line-progress__percent').text()).toBe('58.3%');
 
       await click(epic, 'Try again');
 

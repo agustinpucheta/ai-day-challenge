@@ -36,3 +36,73 @@ export function noProgressText(progress: Progress): string {
   if (progress.basis === 'subtasks') return 'No subtasks yet';
   return 'Progress does not apply';
 }
+
+/** The six forms a station can take, in the order they are drawn along a line. */
+export type StationKind = 'done' | 'inProgress' | 'pending' | 'available' | 'cancelled' | 'unknown';
+
+export const STATION_ORDER: readonly StationKind[] = [
+  'done',
+  'inProgress',
+  'pending',
+  'available',
+  'cancelled',
+  'unknown',
+];
+
+/** Most stations a line ever draws; larger items are compressed and the words keep the counts. */
+export const MAX_STATIONS = 24;
+
+/** `count` is the exact number of items, `stations` how many are drawn for them. */
+export interface StationRun {
+  kind: StationKind;
+  count: number;
+  stations: number;
+}
+
+/**
+ * The runs of stations for a line, in drawing order, skipping empty kinds. Available items are a
+ * subset of pending (D-025), so they are drawn as their own run taken out of the pending one.
+ * Above `max` the stations are shared out in proportion to the counts (largest remainder), but
+ * every kind that has items keeps at least one station so nothing disappears from the line.
+ */
+export function stationPlan(progress: Progress, max: number = MAX_STATIONS): StationRun[] {
+  const counts: Record<StationKind, number> = {
+    done: progress.completed,
+    inProgress: progress.inProgress,
+    pending: Math.max(0, progress.pending - progress.available),
+    available: progress.available,
+    cancelled: progress.cancelled,
+    unknown: progress.unknown,
+  };
+  const runs: StationRun[] = STATION_ORDER.filter((kind) => counts[kind] > 0).map((kind) => ({
+    kind,
+    count: counts[kind],
+    stations: counts[kind],
+  }));
+  const total = runs.reduce((sum, run) => sum + run.count, 0);
+  if (total <= max || runs.length === 0) return runs;
+
+  const spare = Math.max(0, max - runs.length);
+  const weight = total - runs.length;
+  const shares = runs.map((run) => ((run.count - 1) * spare) / (weight || 1));
+  runs.forEach((run, i) => {
+    run.stations = 1 + Math.floor(shares[i]!);
+  });
+  let left = max - runs.reduce((sum, run) => sum + run.stations, 0);
+  const byRemainder = runs
+    .map((_, i) => i)
+    .sort((a, b) => shares[b]! - Math.floor(shares[b]!) - (shares[a]! - Math.floor(shares[a]!)));
+  for (const i of byRemainder) {
+    if (left <= 0) break;
+    runs[i]!.stations += 1;
+    left -= 1;
+  }
+  return runs;
+}
+
+/** One of the four line inks for an issue, stable for a key so a line keeps its colour. */
+export function lineTone(key: string): 0 | 1 | 2 | 3 {
+  let hash = 0;
+  for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return (hash % 4) as 0 | 1 | 2 | 3;
+}

@@ -5,6 +5,7 @@ import IssueErrorState from '@/components/IssueErrorState.vue';
 import IssueSearchForm from '@/components/IssueSearchForm.vue';
 import JiraConnectionPanel from '@/components/JiraConnectionPanel.vue';
 import LastFetched from '@/components/LastFetched.vue';
+import StateLegend from '@/components/StateLegend.vue';
 import TrackedIssueCard from '@/components/TrackedIssueCard.vue';
 import TrackedIssueErrorCard from '@/components/TrackedIssueErrorCard.vue';
 import { useJiraConnection } from '@/jira/useJiraConnection';
@@ -69,6 +70,15 @@ const refreshing = computed(() => state.value.kind === 'loaded' && state.value.r
       </div>
     </header>
 
+    <div class="toolbar">
+      <IssueSearchForm
+        input-id="dashboard-search"
+        label="Search by text or issue key"
+        @search="onSearch"
+      />
+      <StateLegend />
+    </div>
+
     <JiraConnectionPanel
       compact
       :state="jira.state.value"
@@ -76,19 +86,14 @@ const refreshing = computed(() => state.value.kind === 'loaded' && state.value.r
       @reload="jira.reload"
     />
 
-    <IssueSearchForm
-      input-id="dashboard-search"
-      label="Search by text or issue key"
-      @search="onSearch"
-    />
-
     <div class="stack" aria-live="polite">
       <div v-if="state.kind === 'loading'" class="grid grid--cards" data-testid="tracking-skeleton">
         <p class="sr-only">Loading tracked issues…</p>
-        <div v-for="n in 3" :key="n" class="skeleton-card" aria-hidden="true">
+        <div v-for="n in 4" :key="n" class="skeleton-card" aria-hidden="true">
           <span class="skeleton skeleton--title"></span>
           <span class="skeleton skeleton--line"></span>
-          <span class="skeleton skeleton--bar"></span>
+          <span class="skeleton skeleton--numeral"></span>
+          <span class="skeleton skeleton--rail"></span>
           <span class="skeleton skeleton--line"></span>
         </div>
       </div>
@@ -99,11 +104,14 @@ const refreshing = computed(() => state.value.kind === 'loaded' && state.value.r
         @retry="list.retry()"
       />
 
-      <p v-else-if="state.items.length === 0" class="empty-state">
-        You're not tracking any issues yet.
-        <RouterLink :to="{ name: 'issues' }">Search for an epic or story</RouterLink> and press
-        Track to follow its progress here.
-      </p>
+      <div v-else-if="state.items.length === 0" class="empty-state empty-state--line">
+        <span class="empty-state__line" aria-hidden="true"></span>
+        <p>
+          You're not tracking any issues yet.
+          <RouterLink :to="{ name: 'issues' }">Search for an epic or story</RouterLink> and press
+          Track to follow its progress here.
+        </p>
+      </div>
 
       <template v-else>
         <div v-if="wideFailure" class="alert alert--error" role="alert">

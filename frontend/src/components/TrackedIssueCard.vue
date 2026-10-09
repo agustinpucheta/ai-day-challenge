@@ -2,11 +2,12 @@
 import { computed } from 'vue';
 import type { ChildrenState, TrackedItem } from '@/tracking/useTrackedList';
 import { formatTime } from '@/issues/format';
+import { lineTone } from '@/issues/progress';
 import AvailableChip from './AvailableChip.vue';
 import EpicChildrenTable from './EpicChildrenTable.vue';
 import IssueErrorState from './IssueErrorState.vue';
 import OpenInJira from './OpenInJira.vue';
-import ProgressBar from './ProgressBar.vue';
+import LineProgress from './LineProgress.vue';
 import ProgressSummary from './ProgressSummary.vue';
 import StatusBadge from './StatusBadge.vue';
 import StopTrackingControl from './StopTrackingControl.vue';
@@ -28,12 +29,19 @@ const progress = computed(() => props.item.progress);
 /** Only epics report a children count. */
 const isEpic = computed(() => props.item.childrenCount !== undefined);
 const fetchedTime = computed(() => formatTime(props.item.fetchedAt));
+const tone = computed(() => lineTone(props.item.issueKey));
 const titleId = computed(() => `tracked-${props.item.id}-title`);
 const childrenId = computed(() => `tracked-${props.item.id}-children`);
 </script>
 
 <template>
-  <article v-if="issue && progress" class="tracked-card" :aria-labelledby="titleId">
+  <article
+    v-if="issue && progress"
+    class="tracked-card"
+    :data-tone="tone"
+    :aria-labelledby="titleId"
+  >
+    <span class="tracked-card__tab" aria-hidden="true"></span>
     <header class="tracked-card__header">
       <h2 :id="titleId" class="tracked-card__key">
         <RouterLink :to="{ name: 'issue', params: { key: issue.key } }">{{ issue.key }}</RouterLink>
@@ -47,7 +55,7 @@ const childrenId = computed(() => `tracked-${props.item.id}-children`);
     <p class="tracked-card__summary">{{ issue.summary }}</p>
 
     <div class="tracked-card__progress">
-      <ProgressBar :progress="progress" :label="`${issue.key} progress`" />
+      <LineProgress :progress="progress" :tone="tone" :label="`${issue.key} progress`" />
       <ProgressSummary :progress="progress" :warnings="item.warnings" />
     </div>
 

@@ -34,22 +34,39 @@ async function onLogout(): Promise<void> {
 <template>
   <div class="app-shell">
     <header class="app-header">
-      <RouterLink :to="{ name: 'home' }" class="app-header__brand">Jira Dashboard</RouterLink>
-      <nav aria-label="Main" class="app-header__nav">
-        <RouterLink :to="{ name: 'home' }">My tracking</RouterLink>
-        <RouterLink :to="{ name: 'issues' }" :class="{ 'router-link-exact-active': isIssueDetail }"
-          >Issues</RouterLink
-        >
-        <RouterLink :to="{ name: 'settings' }">Settings</RouterLink>
-      </nav>
-      <div v-if="user" class="app-header__user">
-        <span class="app-header__identity">
-          <span class="app-header__name">{{ name }}</span>
-          <span v-if="user.displayName" class="app-header__email muted">{{ user.email }}</span>
-        </span>
-        <button type="button" class="button" :disabled="loggingOut" @click="onLogout">
-          {{ loggingOut ? 'Signing out…' : 'Sign out' }}
-        </button>
+      <div class="app-header__inner">
+        <RouterLink :to="{ name: 'home' }" class="app-header__brand">
+          <svg class="app-header__mark" viewBox="0 0 32 12" aria-hidden="true" focusable="false">
+            <path d="M3 6H29" />
+            <circle cx="4" cy="6" r="3" />
+            <circle cx="16" cy="6" r="3" />
+            <circle cx="28" cy="6" r="3" />
+          </svg>
+          <span>Jira Dashboard</span>
+        </RouterLink>
+        <nav aria-label="Main" class="app-header__nav">
+          <RouterLink :to="{ name: 'home' }">My tracking</RouterLink>
+          <RouterLink
+            :to="{ name: 'issues' }"
+            :class="{ 'router-link-exact-active': isIssueDetail }"
+            >Issues</RouterLink
+          >
+          <RouterLink :to="{ name: 'settings' }">Settings</RouterLink>
+        </nav>
+        <div v-if="user" class="app-header__user">
+          <span class="app-header__identity">
+            <span class="app-header__name">{{ name }}</span>
+            <span v-if="user.displayName" class="app-header__email muted">{{ user.email }}</span>
+          </span>
+          <button
+            type="button"
+            class="button button--quiet"
+            :disabled="loggingOut"
+            @click="onLogout"
+          >
+            {{ loggingOut ? 'Signing out…' : 'Sign out' }}
+          </button>
+        </div>
       </div>
     </header>
 

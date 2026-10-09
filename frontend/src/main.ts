@@ -3,7 +3,10 @@ import { setUnauthenticatedHandler } from '@/api/client';
 import { useSession } from '@/auth/session';
 import App from './App.vue';
 import { router } from './router';
-import './styles/main.css';
+import '@fontsource-variable/atkinson-hyperlegible-next/wght.css';
+import './styles/tokens.css';
+import './styles/base.css';
+import './styles/components.css';
 
 // A protected call answered 401: the session expired or was revoked server-side.
 setUnauthenticatedHandler(() => {
