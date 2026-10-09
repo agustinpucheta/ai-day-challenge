@@ -12,6 +12,12 @@ export const router = createRouter({
       meta: { requiresAuth: true },
       children: [
         { path: '', name: 'home', component: () => import('@/views/DashboardView.vue') },
+        { path: 'issues', name: 'issues', component: () => import('@/views/IssueSearchView.vue') },
+        {
+          path: 'issues/:key',
+          name: 'issue',
+          component: () => import('@/views/IssueDetailView.vue'),
+        },
         { path: 'settings', name: 'settings', component: () => import('@/views/SettingsView.vue') },
       ],
     },

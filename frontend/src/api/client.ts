@@ -10,6 +10,21 @@ export type Preferences = Schemas['PreferencesResponseDto'];
 export type PreferencesUpdate = Schemas['UpdatePreferencesDto'];
 export type JiraConnectionStatus = Schemas['JiraConnectionStatusDto'];
 export type JiraConnectionVerification = Schemas['JiraConnectionVerifyDto'];
+export type IssueSummary = Schemas['IssueSummaryDto'];
+export type IssueStatus = Schemas['IssueStatusDto'];
+export type IssueSearchResult = Schemas['IssueSearchResponseDto'];
+export type DashboardIssue = Schemas['DashboardIssueResponseDto'];
+
+export interface IssueSearchParams {
+  q: string;
+  pageToken?: string;
+  pageSize?: number;
+}
+
+/** Optional per-call settings; `signal` cancels the underlying fetch. */
+export interface CallOptions {
+  signal?: AbortSignal;
+}
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH';
 /** Only paths that exist in the generated OpenAPI contract compile. */
@@ -23,6 +38,10 @@ export interface ApiClientOptions {
 
 interface RequestOptions {
   body?: unknown;
+  /** Values for `{placeholders}` in the path; each one is URL-encoded. */
+  params?: Record<string, string>;
+  query?: Record<string, string | number | undefined>;
+  signal?: AbortSignal;
   /** False for calls where 401 is an expected answer (session probe, login). */
   notifyUnauthenticated?: boolean;
 }
@@ -47,6 +66,22 @@ function parseRetryAfter(response: Response): number | undefined {
   return Number(raw.trim());
 }
 
+function buildUrl(
+  path: string,
+  params: Record<string, string> = {},
+  query: Record<string, string | number | undefined> = {},
+): string {
+  const resolved = path.replace(/\{(\w+)\}/g, (_, name: string) =>
+    encodeURIComponent(params[name] ?? ''),
+  );
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined) search.set(key, String(value));
+  }
+  const qs = search.toString();
+  return qs ? `${resolved}?${qs}` : resolved;
+}
+
 async function readJson(response: Response): Promise<unknown> {
   try {
     return (await response.json()) as unknown;
@@ -66,12 +101,13 @@ export function createApiClient(options: ApiClientOptions = {}) {
   async function request<T>(
     method: HttpMethod,
     path: ApiPath,
-    { body, notifyUnauthenticated = true }: RequestOptions = {},
+    { body, params, query, signal, notifyUnauthenticated = true }: RequestOptions = {},
   ): Promise<T> {
     let response: Response;
     try {
-      response = await doFetch(path, {
+      response = await doFetch(buildUrl(path, params, query), {
         method,
+        signal,
         credentials: 'include',
         headers: {
           Accept: 'application/json',
@@ -136,6 +172,17 @@ export function createApiClient(options: ApiClientOptions = {}) {
     /** Read-only probe of the Jira credentials. Jira failures are 4xx/5xx but never 401. */
     verifyJiraConnection: () =>
       request<JiraConnectionVerification>('POST', '/api/v1/jira/connection/verify'),
+    /** Read-only search by text or key. Failures throw; an empty `items` only means no matches. */
+    searchIssues: ({ q, pageToken, pageSize }: IssueSearchParams, { signal }: CallOptions = {}) =>
+      request<IssueSearchResult>('GET', '/api/v1/jira/issues/search', {
+        query: { q, pageToken, pageSize },
+        signal,
+      }),
+    getDashboardIssue: (issueKey: string, { signal }: CallOptions = {}) =>
+      request<DashboardIssue>('GET', '/api/v1/dashboard/issues/{issueKey}', {
+        params: { issueKey },
+        signal,
+      }),
   };
 }
 

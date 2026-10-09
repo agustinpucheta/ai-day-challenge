@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useSession } from '@/auth/session';
 import ErrorAlert from '@/components/ErrorAlert.vue';
 
 const router = useRouter();
+const route = useRoute();
+/** The issue detail route keeps the "Issues" entry highlighted. */
+const isIssueDetail = computed(() => route.name === 'issue');
 const session = useSession();
 
 const loggingOut = ref(false);
@@ -34,6 +37,9 @@ async function onLogout(): Promise<void> {
       <RouterLink :to="{ name: 'home' }" class="app-header__brand">Jira Dashboard</RouterLink>
       <nav aria-label="Main" class="app-header__nav">
         <RouterLink :to="{ name: 'home' }">Dashboard</RouterLink>
+        <RouterLink :to="{ name: 'issues' }" :class="{ 'router-link-exact-active': isIssueDetail }"
+          >Issues</RouterLink
+        >
         <RouterLink :to="{ name: 'settings' }">Settings</RouterLink>
       </nav>
       <div v-if="user" class="app-header__user">

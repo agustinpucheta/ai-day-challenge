@@ -67,8 +67,8 @@ MVP phases 0–9 from `docs/IMPLEMENTATION_PLAN.md`. The license flow is now in 
 - [ ] **F3** — Jira Gateway and search/read. Gate: user sees a permitted real issue; inaccessible issues leak nothing; errors never become empty lists/0%. Small commits, one slice each:
   - [x] F3.1 Gateway read core: typed Jira field config (evidence-backed IDs), REST v3 normalizers (issue type by id/hierarchyLevel/subtask, status + statusCategory.key, both SP fields, parent, subtasks), safe JQL builder (key vs text, escaping), `searchIssues` (`nextPageToken`) and `getIssue`; REST v3 fixtures + contract tests.
   - [x] F3.2 HTTP layer: `GET /jira/issues/search` and `GET /dashboard/issues/:issueKey` (normalized issue, subtasks, `fetchedAt`), inaccessible/not-found indistinguishable, OpenAPI regenerated; e2e with fake Jira.
-  - [ ] F3.3 Frontend: search + issue detail with loading/error/empty/forbidden/stale states; regenerate API types.
-  - [ ] F3.4 Docs + real read-only check against the owner's Jira.
+  - [x] F3.3 Frontend: search + issue detail with loading/error/empty/forbidden/stale states; regenerate API types.
+  - [x] F3.4 Docs + real read-only check against the owner's Jira.
 - [ ] **F4** — Metrics, subtasks and weekly SP. Gate: tests for story without subtasks, empty epic, null fields, estimate changes, in/out of period, reopen, pagination, duplicates.
 - [ ] **F5** — Blocking dependencies. Gate: fixtures for both link directions and an external blocker; direction not inverted.
 - [ ] **F6** — Per-user preferences and tracking. Gate: two users have different tracked lists; data never crosses.

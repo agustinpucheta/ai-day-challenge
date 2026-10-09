@@ -130,6 +130,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/jira/issues/search': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Search Jira issues by text or key (read-only, token-paginated) */
+    get: operations['JiraIssuesController_search'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/dashboard/issues/{issueKey}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Issue detail with subtasks and story points (read-only) */
+    get: operations['DashboardIssuesController_getIssue'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/health': {
     parameters: {
       query?: never;
@@ -208,6 +242,7 @@ export interface components {
         | 'JIRA_NOT_CONNECTED'
         | 'JIRA_REAUTH_REQUIRED'
         | 'JIRA_FORBIDDEN'
+        | 'ISSUE_NOT_FOUND_OR_INACCESSIBLE'
         | 'JIRA_RATE_LIMITED'
         | 'JIRA_UNAVAILABLE'
         | 'INTERNAL_ERROR';
@@ -277,6 +312,94 @@ export interface components {
        * @description When Jira was queried.
        */
       checkedAt: string;
+    };
+    IssueTypeDto: {
+      /**
+       * @description Issue type id (names are localized).
+       * @example 10001
+       */
+      id: string;
+      /** @example Story */
+      name: string;
+      /** @example 0 */
+      hierarchyLevel: number;
+      isSubtask: boolean;
+    };
+    IssueStatusDto: {
+      /** @example In progress */
+      name: string;
+      /** @enum {string} */
+      categoryKey: 'new' | 'indeterminate' | 'done' | 'unknown';
+      /** @description The configured cancelled status (done category, not completed). */
+      isCancelled: boolean;
+    };
+    IssueSummaryDto: {
+      /** @example MASIN-123 */
+      key: string;
+      summary: string;
+      issueType: components['schemas']['IssueTypeDto'];
+      status: components['schemas']['IssueStatusDto'];
+      /** @example https://acme.atlassian.net/browse/MASIN-123 */
+      url: string;
+    };
+    IssueMetadataDto: {
+      /**
+       * Format: date-time
+       * @description When Jira was queried.
+       */
+      fetchedAt: string;
+      /**
+       * @description Always false: data is read live from Jira.
+       * @example false
+       */
+      isStale: boolean;
+    };
+    IssueSearchResponseDto: {
+      items: components['schemas']['IssueSummaryDto'][];
+      /** @description Opaque cursor for the next page; null on the last page. */
+      nextPageToken: string | null;
+      metadata: components['schemas']['IssueMetadataDto'];
+    };
+    StoryPointsDto: {
+      /** @description Final SP; null means no estimate. */
+      final: number | null;
+      /** @description Planned SP; null means no estimate. */
+      planned: number | null;
+    };
+    DashboardIssueDto: {
+      id: string;
+      /** @example MASIN-123 */
+      key: string;
+      summary: string;
+      issueType: components['schemas']['IssueTypeDto'];
+      status: components['schemas']['IssueStatusDto'];
+      url: string;
+      parentKey: string | null;
+      storyPoints: components['schemas']['StoryPointsDto'];
+    };
+    DashboardSubtaskDto: {
+      key: string;
+      summary: string;
+      status: components['schemas']['IssueStatusDto'];
+      url: string;
+    };
+    IssueDetailMetadataDto: {
+      /**
+       * Format: date-time
+       * @description When Jira was queried.
+       */
+      fetchedAt: string;
+      /**
+       * @description Always false: data is read live from Jira.
+       * @example false
+       */
+      isStale: boolean;
+      warnings: string[];
+    };
+    DashboardIssueResponseDto: {
+      issue: components['schemas']['DashboardIssueDto'];
+      subtasks: components['schemas']['DashboardSubtaskDto'][];
+      metadata: components['schemas']['IssueDetailMetadataDto'];
     };
     HealthResponseDto: {
       /** @enum {string} */
@@ -602,6 +725,169 @@ export interface operations {
       };
       /** @description FORBIDDEN_ORIGIN (CSRF origin check) or REGISTRATION_DISABLED */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description JIRA_REAUTH_REQUIRED (Jira rejected the API token) or JIRA_FORBIDDEN (account lacks permission) */
+      424: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description RATE_LIMITED (local throttle) or JIRA_RATE_LIMITED (Jira; see Retry-After) */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description DATABASE_UNAVAILABLE or JIRA_UNAVAILABLE */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+    };
+  };
+  JiraIssuesController_search: {
+    parameters: {
+      query: {
+        /** @description Free text or an issue key (e.g. MASIN-123). Trimmed, 2 to 100 characters. */
+        q: string;
+        /** @description Opaque cursor returned as nextPageToken by the previous page. */
+        pageToken?: string;
+        pageSize?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['IssueSearchResponseDto'];
+        };
+      };
+      /** @description VALIDATION_ERROR: invalid or non-whitelisted input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login) */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description JIRA_REAUTH_REQUIRED (Jira rejected the API token) or JIRA_FORBIDDEN (account lacks permission) */
+      424: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description RATE_LIMITED (local throttle) or JIRA_RATE_LIMITED (Jira; see Retry-After) */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description DATABASE_UNAVAILABLE or JIRA_UNAVAILABLE */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+    };
+  };
+  DashboardIssuesController_getIssue: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        issueKey: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DashboardIssueResponseDto'];
+        };
+      };
+      /** @description VALIDATION_ERROR: invalid or non-whitelisted input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login) */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description ISSUE_NOT_FOUND_OR_INACCESSIBLE: the issue does not exist or is not visible (indistinguishable) */
+      404: {
         headers: {
           [name: string]: unknown;
         };

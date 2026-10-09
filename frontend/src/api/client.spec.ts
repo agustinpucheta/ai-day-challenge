@@ -200,4 +200,116 @@ describe('api client', () => {
       expect(onUnauthenticated).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('issues', () => {
+    const summary = {
+      key: 'MASIN-1',
+      summary: 'Login',
+      issueType: { id: '1', name: 'Story', hierarchyLevel: 0, isSubtask: false },
+      status: { name: 'To Do', categoryKey: 'new', isCancelled: false },
+      url: 'https://acme.atlassian.net/browse/MASIN-1',
+    };
+
+    it('searches with an encoded query and optional page params', async () => {
+      const fetchMock = vi.fn<typeof fetch>(async () =>
+        jsonResponse(200, {
+          items: [summary],
+          nextPageToken: null,
+          metadata: { fetchedAt: '2026-10-09T12:00:00.000Z', isStale: false },
+        }),
+      );
+      const api = createApiClient({ fetch: fetchMock });
+
+      const result = await api.searchIssues({ q: 'a&b c', pageToken: 'tok_1-2', pageSize: 5 });
+
+      expect(result.items).toHaveLength(1);
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
+        '/api/v1/jira/issues/search?q=a%26b+c&pageToken=tok_1-2&pageSize=5',
+      );
+    });
+
+    it('omits undefined query params and encodes the issue key in the path', async () => {
+      const fetchMock = vi.fn<typeof fetch>(async () =>
+        jsonResponse(200, { issue: {}, subtasks: [], metadata: {} }),
+      );
+      const api = createApiClient({ fetch: fetchMock });
+
+      await api.searchIssues({ q: 'login' }).catch(() => undefined);
+      await api.getDashboardIssue('MASIN-1/../x');
+
+      expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/v1/jira/issues/search?q=login');
+      expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/v1/dashboard/issues/MASIN-1%2F..%2Fx');
+    });
+
+    it.each([
+      [400, 'VALIDATION_ERROR'],
+      [404, 'ISSUE_NOT_FOUND_OR_INACCESSIBLE'],
+      [409, 'JIRA_NOT_CONNECTED'],
+      [424, 'JIRA_REAUTH_REQUIRED'],
+      [424, 'JIRA_FORBIDDEN'],
+      [503, 'JIRA_UNAVAILABLE'],
+    ])('maps %i %s to a typed ApiError for both calls', async (status, code) => {
+      const api = createApiClient({
+        fetch: vi.fn(async () => jsonResponse(status, { code, message: `m ${code}` })),
+      });
+
+      for (const call of [
+        () => api.searchIssues({ q: 'login' }),
+        () => api.getDashboardIssue('MASIN-1'),
+      ]) {
+        const error = await call().catch((e: unknown) => e);
+        expect(error).toBeInstanceOf(ApiError);
+        expect(error).toMatchObject({ status, code });
+      }
+    });
+
+    it('keeps Retry-After on a 429 and reports network failures', async () => {
+      const limited = createApiClient({
+        fetch: vi.fn(
+          async () =>
+            new Response(JSON.stringify({ code: 'JIRA_RATE_LIMITED', message: 'slow down' }), {
+              status: 429,
+              headers: { 'Content-Type': 'application/json', 'Retry-After': '42' },
+            }),
+        ),
+      });
+      const offline = createApiClient({
+        fetch: vi.fn(async () => {
+          throw new TypeError('Failed to fetch');
+        }),
+      });
+
+      expect(await limited.searchIssues({ q: 'login' }).catch((e: unknown) => e)).toMatchObject({
+        code: 'JIRA_RATE_LIMITED',
+        retryAfterSeconds: 42,
+      });
+      expect(await offline.getDashboardIssue('MASIN-1').catch((e: unknown) => e)).toMatchObject({
+        status: 0,
+        code: 'NETWORK_ERROR',
+      });
+    });
+
+    it('never triggers the session-expiry handler for Jira failures, only for a real 401', async () => {
+      const onUnauthenticated = vi.fn();
+      const jira = createApiClient({
+        fetch: vi.fn(async () =>
+          jsonResponse(424, { code: 'JIRA_REAUTH_REQUIRED', message: 'token rejected' }),
+        ),
+        onUnauthenticated,
+      });
+      const session = createApiClient({
+        fetch: vi.fn(async () =>
+          jsonResponse(401, { code: 'UNAUTHENTICATED', message: 'Authentication required' }),
+        ),
+        onUnauthenticated,
+      });
+
+      await jira.searchIssues({ q: 'login' }).catch(() => undefined);
+      await jira.getDashboardIssue('MASIN-1').catch(() => undefined);
+      expect(onUnauthenticated).not.toHaveBeenCalled();
+
+      await session.getDashboardIssue('MASIN-1').catch(() => undefined);
+      expect(onUnauthenticated).toHaveBeenCalledTimes(1);
+    });
+  });
 });

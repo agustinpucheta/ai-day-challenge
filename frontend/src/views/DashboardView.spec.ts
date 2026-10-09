@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { jsonResponse, stubFetch } from '@/test/http';
+import { createTestRouter } from '@/test/router';
 import DashboardView from './DashboardView.vue';
 
 const SECRET = 'ATATT-secret-token-value';
@@ -22,13 +23,16 @@ const failure = (status: number, code: string, headers: Record<string, string> =
     headers: { 'Content-Type': 'application/json', ...headers },
   });
 
+const PANEL_BUTTON = '[aria-labelledby="jira-panel-title"] button';
+
 const verifyCalls = (calls: { method: string; url: string }[]) =>
   calls.filter((call) => call.method === 'POST' && call.url.endsWith('/verify'));
 
 async function mountDashboard() {
-  const wrapper = mount(DashboardView);
+  const router = createTestRouter();
+  const wrapper = mount(DashboardView, { global: { plugins: [router] } });
   await flushPromises();
-  return wrapper;
+  return { wrapper, router };
 }
 
 describe('DashboardView Jira connection', () => {
@@ -40,7 +44,7 @@ describe('DashboardView Jira connection', () => {
         jsonResponse(200, { mode: 'api_token', status: 'not_configured', siteUrl: null }),
     });
 
-    const wrapper = await mountDashboard();
+    const { wrapper } = await mountDashboard();
 
     expect(wrapper.text()).toContain('Not configured');
     expect(wrapper.text()).toContain('JIRA_API_TOKEN');
@@ -53,7 +57,7 @@ describe('DashboardView Jira connection', () => {
       'POST /api/v1/jira/connection/verify': verified,
     });
 
-    const wrapper = await mountDashboard();
+    const { wrapper } = await mountDashboard();
 
     expect(wrapper.text()).toContain('Connected');
     expect(wrapper.text()).toContain('Ada Lovelace');
@@ -69,9 +73,9 @@ describe('DashboardView Jira connection', () => {
       'GET /api/v1/jira/connection': configured,
       'POST /api/v1/jira/connection/verify': verified,
     });
-    const wrapper = await mountDashboard();
+    const { wrapper } = await mountDashboard();
 
-    await wrapper.get('button').trigger('click');
+    await wrapper.get(PANEL_BUTTON).trigger('click');
     await flushPromises();
 
     expect(verifyCalls(calls)).toHaveLength(2);
@@ -88,7 +92,7 @@ describe('DashboardView Jira connection', () => {
         }),
     });
 
-    const wrapper = await mountDashboard();
+    const { wrapper } = await mountDashboard();
 
     expect(wrapper.text()).toContain('Verifying');
     expect(wrapper.get('[aria-labelledby="jira-panel-title"]').attributes('aria-busy')).toBe(
@@ -110,7 +114,7 @@ describe('DashboardView Jira connection', () => {
       'POST /api/v1/jira/connection/verify': () => failure(status, code),
     });
 
-    const wrapper = await mountDashboard();
+    const { wrapper } = await mountDashboard();
 
     expect(wrapper.get('[role="alert"]').text()).toContain(title);
     expect(wrapper.text()).not.toContain('Connected');
@@ -125,10 +129,10 @@ describe('DashboardView Jira connection', () => {
         ++attempt === 1 ? failure(429, 'JIRA_RATE_LIMITED', { 'Retry-After': '30' }) : verified(),
     });
 
-    const wrapper = await mountDashboard();
+    const { wrapper } = await mountDashboard();
     expect(wrapper.text()).toContain('Retry in 30 seconds');
 
-    await wrapper.get('button').trigger('click');
+    await wrapper.get(PANEL_BUTTON).trigger('click');
     await flushPromises();
 
     expect(wrapper.text()).toContain('Connected');
@@ -141,7 +145,7 @@ describe('DashboardView Jira connection', () => {
       'POST /api/v1/jira/connection/verify': () => failure(409, 'JIRA_NOT_CONNECTED'),
     });
 
-    const wrapper = await mountDashboard();
+    const { wrapper } = await mountDashboard();
 
     expect(wrapper.text()).toContain('Not configured');
   });
@@ -157,12 +161,31 @@ describe('DashboardView Jira connection', () => {
       }),
     );
 
-    const wrapper = await mountDashboard();
+    const { wrapper } = await mountDashboard();
     expect(wrapper.get('[role="alert"]').text()).toContain('Cannot reach the server');
 
-    await wrapper.get('button').trigger('click');
+    await wrapper.get(PANEL_BUTTON).trigger('click');
     await flushPromises();
 
     expect(wrapper.text()).toContain('Connected');
+  });
+
+  it('sends a valid search to the issues route and rejects a too-short one', async () => {
+    stubFetch({
+      'GET /api/v1/jira/connection': () => jsonResponse(200, { status: 'not_configured' }),
+    });
+    const { wrapper, router } = await mountDashboard();
+    const input = wrapper.get('input[type="search"]');
+
+    await input.setValue('a');
+    await wrapper.get('form[role="search"]').trigger('submit');
+    expect(wrapper.get('.field__error').text()).toContain('at least 2');
+    expect(router.currentRoute.value.name).not.toBe('issues');
+
+    await input.setValue('  MASIN-1  ');
+    await wrapper.get('form[role="search"]').trigger('submit');
+    await flushPromises();
+    expect(router.currentRoute.value.name).toBe('issues');
+    expect(router.currentRoute.value.query.q).toBe('MASIN-1');
   });
 });
