@@ -13,6 +13,8 @@ export interface JiraStatus {
   name: string;
   categoryKey: JiraStatusCategoryKey | 'unknown';
   isCancelled: boolean;
+  /** D-025: configured "available to take" status; never true for done or cancelled issues. */
+  isAvailable: boolean;
 }
 
 export interface JiraSubtaskRef {

@@ -1280,12 +1280,17 @@
           "isCancelled": {
             "type": "boolean",
             "description": "The configured cancelled status (done category, not completed)."
+          },
+          "isAvailable": {
+            "type": "boolean",
+            "description": "Configured \"available to take\" status (D-025); never true for done or cancelled issues."
           }
         },
         "required": [
           "name",
           "categoryKey",
-          "isCancelled"
+          "isCancelled",
+          "isAvailable"
         ]
       },
       "IssueSummaryDto": {
@@ -1477,6 +1482,10 @@
           "pending": {
             "type": "number"
           },
+          "available": {
+            "type": "number",
+            "description": "Pending items available to take (D-025). A subset of pending, not an extra bucket."
+          },
           "cancelled": {
             "type": "number",
             "description": "Cancelled items, always reported separately."
@@ -1502,6 +1511,7 @@
           "completed",
           "inProgress",
           "pending",
+          "available",
           "cancelled",
           "unknown",
           "percent",

@@ -27,6 +27,12 @@ export const JIRA_CONFIG = {
   doneCategoryKey: 'done',
   /** "Cancelado" status id (D-014; category `done`). Configured, never inferred from names. */
   cancelledStatusId: '10000',
+  /**
+   * D-025: statuses that mean "available to take". "Esperar Recurso" (id 10068, category `new`
+   * "Por hacer"), see `docs/JIRA_DISCOVERY.md` ("Estados y categorías"). Configured by id, never
+   * inferred from names; re-verify the id against the real site.
+   */
+  availableStatusIds: ['10068'] as readonly string[],
   /** Page size bounds for the enhanced search (the MCP limit observed was 1..50). */
   search: { defaultPageSize: 20, maxPageSize: 50 },
   /** Issue types at this hierarchy level or above (epics) have children resolved via `parent`. */

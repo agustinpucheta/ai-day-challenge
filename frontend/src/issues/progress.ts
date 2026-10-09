@@ -20,6 +20,11 @@ export function countsText(progress: Progress): string {
   return parts.join(' · ');
 }
 
+/** Available items are a subset of pending (D-025), shown as their own line. */
+export function availableText(count: number): string {
+  return `${count} available to take`;
+}
+
 export function unknownText(count: number): string {
   return `${count} ${count === 1 ? 'item' : 'items'} with unknown status`;
 }

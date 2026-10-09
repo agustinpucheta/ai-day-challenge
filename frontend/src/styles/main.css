@@ -18,6 +18,8 @@
   --color-neutral-bg: #eceff3;
   --color-info-bg: #e3edfb;
   --color-info-text: #184c99;
+  --color-available-bg: #d9f3ee;
+  --color-available-text: #0b5c52;
   --color-danger: #b42323;
   --color-danger-hover: #8f1d1d;
   --color-danger-text: #ffffff;
@@ -60,6 +62,8 @@
     --color-neutral-bg: #2a3038;
     --color-info-bg: #1b2c45;
     --color-info-text: #a9c9f8;
+    --color-available-bg: #123a36;
+    --color-available-text: #9be3d8;
     --color-danger: #e06666;
     --color-danger-hover: #ea8585;
     --color-danger-text: #0b0d10;
@@ -381,6 +385,12 @@ select {
   text-decoration: line-through;
 }
 
+.badge--available {
+  background: var(--color-available-bg);
+  color: var(--color-available-text);
+  border: 1px solid var(--color-available-text);
+}
+
 .badge--warning {
   background: var(--color-warning-bg);
   color: var(--color-warning-text);
@@ -556,6 +566,19 @@ select {
   flex-wrap: wrap;
   gap: var(--space-1) var(--space-4);
   font-size: var(--font-size-sm);
+}
+
+.table tr.is-available td {
+  background: var(--color-available-bg);
+}
+
+.table tr.is-available td:first-child {
+  box-shadow: inset 4px 0 0 var(--color-available-text);
+}
+
+.progress-summary__available {
+  color: var(--color-available-text);
+  font-weight: 600;
 }
 
 .table--children .table__progress {

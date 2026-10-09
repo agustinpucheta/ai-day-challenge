@@ -187,3 +187,13 @@
 **Motivos:** un issue cancelado ya no es trabajo por hacer; contarlo como pendiente impediría llegar a 100 %. Sigue visible en `cancelled`, así que no se oculta.
 
 **Consecuencias:** si todos los elementos están cancelados, `total = 0`, `percent = null` y `state = all_cancelled` (no 0 %). Sin elementos, `state = none`. Las categorías desconocidas cuentan en `unknown`, nunca como completadas, y generan una advertencia.
+
+## D-025 — Issues “disponibles para tomar” por id de estado
+
+**Fecha:** 2026-10-09.
+
+**Decisión:** un issue está disponible para tomar si su estado tiene un id incluido en `availableStatusIds` (`backend/src/jira/jira.config.ts`, hoy `['10068']`, “Esperar Recurso”), no es el estado Cancelado y su categoría no es `done`. Se expone como `status.isAvailable` en todos los estados del API. En el avance, `available` cuenta los elementos contados cuyo estado es disponible y su categoría es `new`; es un **subconjunto de `pending`**, por lo que el invariante `completados + en curso + pendientes + desconocidos = total` no cambia.
+
+**Motivos:** el nombre del estado está localizado y puede cambiar; el id es estable (misma regla que D-014). Las reglas defensivas evitan que un issue cerrado o cancelado figure como disponible aunque se reconfigure el id.
+
+**Consecuencias:** la lista es configurable y debe reverificarse contra el sitio real (el id sale del descubrimiento del 2026-10-09). No afecta al porcentaje ni a los cancelados.

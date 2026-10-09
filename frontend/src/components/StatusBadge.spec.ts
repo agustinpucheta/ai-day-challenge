@@ -2,9 +2,14 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import StatusBadge from './StatusBadge.vue';
 
-const badge = (categoryKey: string, name = 'Some status', isCancelled = false) =>
+const badge = (
+  categoryKey: string,
+  name = 'Some status',
+  isCancelled = false,
+  isAvailable = false,
+) =>
   mount(StatusBadge, {
-    props: { status: { name, categoryKey: categoryKey as 'new', isCancelled } },
+    props: { status: { name, categoryKey: categoryKey as 'new', isCancelled, isAvailable } },
   });
 
 describe('StatusBadge', () => {
@@ -25,5 +30,20 @@ describe('StatusBadge', () => {
     expect(wrapper.classes()).toContain('badge--cancelled');
     expect(wrapper.classes()).not.toContain('badge--done');
     expect(wrapper.text()).not.toContain('Done');
+  });
+
+  it('shows an available status distinctly, keeping the real status name as text', () => {
+    const wrapper = badge('new', 'Esperar Recurso', false, true);
+
+    expect(wrapper.classes()).toContain('badge--available');
+    expect(wrapper.classes()).not.toContain('badge--new');
+    expect(wrapper.text()).toBe('Available · Esperar Recurso');
+  });
+
+  it('gives cancelled precedence over available', () => {
+    const wrapper = badge('done', 'Esperar Recurso', true, true);
+
+    expect(wrapper.text()).toBe('Cancelled');
+    expect(wrapper.classes()).toContain('badge--cancelled');
   });
 });

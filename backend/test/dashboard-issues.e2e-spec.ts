@@ -111,7 +111,12 @@ describe('Jira issue search and dashboard issue (e2e)', () => {
         key: 'DEMO-1',
         summary: 'Demo epic',
         issueType: { id: '10000', name: 'Epic', hierarchyLevel: 1, isSubtask: false },
-        status: { name: 'In progress', categoryKey: 'indeterminate', isCancelled: false },
+        status: {
+          name: 'In progress',
+          categoryKey: 'indeterminate',
+          isCancelled: false,
+          isAvailable: false,
+        },
         url: `${SITE}/browse/DEMO-1`,
       });
       expect(res.body.nextPageToken).toBe('opaque-token-page-2');
@@ -244,6 +249,16 @@ describe('Jira issue search and dashboard issue (e2e)', () => {
       expectNoSecrets(res);
     });
 
+    it('flags the configured "available to take" status (id 10068) and counts it in progress', async () => {
+      await start();
+      jira.onGet = () => ok(jiraFixture('story-available'));
+      const res = await agent.get(`${ISSUE}/DEMO-60`).expect(200);
+      expect(res.body.issue.status).toMatchObject({ categoryKey: 'new', isAvailable: true });
+      const subtasks = res.body.subtasks as Array<{ status: { isAvailable: boolean } }>;
+      expect(subtasks.map((s) => s.status.isAvailable)).toEqual([true, false]);
+      expect(res.body.progress).toMatchObject({ total: 2, pending: 2, available: 1 });
+    });
+
     it('keeps missing story points as null', async () => {
       await start();
       jira.onGet = () => ok(jiraFixture('task-no-subtasks'));
@@ -274,6 +289,7 @@ describe('Jira issue search and dashboard issue (e2e)', () => {
           completed: 0,
           inProgress: 1,
           pending: 1,
+          available: 0,
           cancelled: 1,
           unknown: 0,
           percent: 0,

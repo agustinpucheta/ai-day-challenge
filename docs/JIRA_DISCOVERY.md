@@ -101,6 +101,7 @@ Fuente: MCP `mcp-atlassian`, solo lectura. Etiquetas: **CONFIRMADO** (observado 
 - **Regla:** leer `statusCategory.key` desde Jira en runtime; nunca hardcodear listas de estados.
 - **CONFIRMADO** — `resolution` casi no se usa (3 de 23 issues en Cerrado; ids 10000 y 10004). No se usa `resolution` para definir completado.
 - Decisión derivada: D-014 (Cancelado no cuenta como completado).
+- **Disponible para tomar (D-025):** se usa el id `10068` (“Esperar Recurso”, categoría `new`) tomado de la tabla anterior, configurado en `availableStatusIds`. Debe reverificarse contra el sitio real antes de depender de él; si el id difiere, se corrige solo la configuración.
 
 ### Changelog
 

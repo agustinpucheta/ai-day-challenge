@@ -1,5 +1,6 @@
 import { jiraFixture } from '../../../test/utils/jira-fixtures';
 import { JiraProtocolError } from '../errors';
+import { JIRA_CONFIG } from '../jira.config';
 import { isCompleted } from './jira-issue';
 import { mapJiraIssue } from './jira-issue.mapper';
 
@@ -75,6 +76,35 @@ describe('mapJiraIssue', () => {
     expect(status.categoryKey).toBe(category);
     expect(status.isCancelled).toBe(cancelled);
     expect(isCompleted(status)).toBe(completed);
+  });
+
+  describe('isAvailable (D-025)', () => {
+    const withStatus = (id: string, category: string) => {
+      const payload = structuredClone(jiraFixture('status-new')) as {
+        fields: { status: { id: string; statusCategory: { key: string } } };
+      };
+      payload.fields.status.id = id;
+      payload.fields.status.statusCategory.key = category;
+      return mapJiraIssue(payload, SITE).status;
+    };
+
+    it('is true only for the configured status id', () => {
+      expect(withStatus('10068', 'new').isAvailable).toBe(true);
+      expect(withStatus('1', 'new').isAvailable).toBe(false);
+    });
+
+    it('is never true for done or cancelled issues', () => {
+      expect(withStatus('10068', 'done').isAvailable).toBe(false);
+      expect(withStatus(JIRA_CONFIG.cancelledStatusId, 'done').isAvailable).toBe(false);
+    });
+
+    it('does not infer availability from the status name', () => {
+      const payload = structuredClone(jiraFixture('status-new')) as {
+        fields: { status: { name: string } };
+      };
+      payload.fields.status.name = 'Esperar Recurso';
+      expect(mapJiraIssue(payload, SITE).status.isAvailable).toBe(false);
+    });
   });
 
   it('does not infer cancellation from the status name', () => {

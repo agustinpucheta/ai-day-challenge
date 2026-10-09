@@ -3,7 +3,12 @@ import { JIRA_CONFIG } from '../jira/jira.config';
 /** What the calculation needs from an issue. Names and ids never matter here. */
 export interface ProgressItem {
   key: string;
-  status: { categoryKey: 'new' | 'indeterminate' | 'done' | 'unknown'; isCancelled: boolean };
+  status: {
+    categoryKey: 'new' | 'indeterminate' | 'done' | 'unknown';
+    isCancelled: boolean;
+    /** D-025. Optional: absent means not available. */
+    isAvailable?: boolean;
+  };
 }
 
 export type ProgressBasis = 'subtasks' | 'children';
@@ -27,6 +32,11 @@ export interface ProgressResult {
   completed: number;
   inProgress: number;
   pending: number;
+  /**
+   * D-025: pending items in an "available to take" status. A SUBSET of `pending` (not an extra
+   * bucket), so `completed + inProgress + pending + unknown = total` still holds.
+   */
+  available: number;
   /** Always reported, in or out of the denominator. */
   cancelled: number;
   /** Items whose status category is not recognized: never completed, always counted here. */
@@ -50,17 +60,20 @@ export function computeProgress(
   let completed = 0;
   let inProgress = 0;
   let pending = 0;
+  let available = 0;
   let cancelled = 0;
   let unknown = 0;
   for (const item of items) {
     if (seen.has(item.key)) continue;
     seen.add(item.key);
-    const { categoryKey, isCancelled } = item.status;
+    const { categoryKey, isCancelled, isAvailable } = item.status;
     if (isCancelled) cancelled += 1;
     else if (categoryKey === JIRA_CONFIG.doneCategoryKey) completed += 1;
     else if (categoryKey === 'indeterminate') inProgress += 1;
-    else if (categoryKey === 'new') pending += 1;
-    else unknown += 1;
+    else if (categoryKey === 'new') {
+      pending += 1;
+      if (isAvailable === true) available += 1;
+    } else unknown += 1;
   }
   const total = completed + inProgress + pending + unknown + (countCancelled ? cancelled : 0);
   const state: ProgressState = total > 0 ? 'ok' : cancelled > 0 ? 'all_cancelled' : 'none';
@@ -70,6 +83,7 @@ export function computeProgress(
     completed,
     inProgress,
     pending,
+    available,
     cancelled,
     unknown,
     percent: total > 0 ? Math.round((completed / total) * 1000) / 10 : null,

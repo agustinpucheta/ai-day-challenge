@@ -13,6 +13,7 @@ export function progress(overrides: Partial<Progress> = {}): Progress {
     completed: 7,
     inProgress: 3,
     pending: 2,
+    available: 0,
     cancelled: 1,
     unknown: 0,
     percent: 58.3,
@@ -50,6 +51,7 @@ export const inProgressStatus = {
   name: 'In Progress',
   categoryKey: 'indeterminate',
   isCancelled: false,
+  isAvailable: false,
 };
 
 export function jiraUrl(key: string): string {

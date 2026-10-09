@@ -55,12 +55,18 @@ const CATEGORY_KEYS: readonly string[] = JIRA_CONFIG.statusCategoryKeys;
 
 function mapStatus(raw: z.infer<typeof statusSchema>): JiraStatus {
   const key = raw.statusCategory?.key;
+  const categoryKey: JiraStatus['categoryKey'] =
+    key !== undefined && CATEGORY_KEYS.includes(key) ? (key as JiraStatusCategoryKey) : 'unknown';
+  const isCancelled = raw.id === JIRA_CONFIG.cancelledStatusId;
   return {
     id: raw.id,
     name: raw.name,
-    categoryKey:
-      key !== undefined && CATEGORY_KEYS.includes(key) ? (key as JiraStatusCategoryKey) : 'unknown',
-    isCancelled: raw.id === JIRA_CONFIG.cancelledStatusId,
+    categoryKey,
+    isCancelled,
+    isAvailable:
+      JIRA_CONFIG.availableStatusIds.includes(raw.id) &&
+      !isCancelled &&
+      categoryKey !== JIRA_CONFIG.doneCategoryKey,
   };
 }
 

@@ -25,7 +25,7 @@ Requieren sesión; el usuario sale siempre de la sesión.
 
 ## Issues/dashboard
 
-- `GET /jira/issues/search?q=<texto|CLAVE>&pageToken=<opaco>&pageSize=<1..50, default 20>` — búsqueda de solo lectura con las credenciales resueltas en el backend (el usuario sale solo de la sesión). `q` se recorta y debe tener 2 a 100 caracteres sin caracteres de control; `pageToken` es el cursor opaco (máx. 2000 caracteres, charset URL-safe) devuelto como `nextPageToken`. Responde `{ items: IssueSummary[], nextPageToken: string | null, metadata: { fetchedAt, isStale: false } }` con `IssueSummary = { key, summary, issueType: { id, name, hierarchyLevel, isSubtask }, status: { name, categoryKey, isCancelled }, url }`. Una lista vacía con 200 significa "sin resultados"; todo fallo de Jira responde con su código de error y nunca con `items: []`. Entrada inválida: 400 `VALIDATION_ERROR` sin llamar a Jira.
+- `GET /jira/issues/search?q=<texto|CLAVE>&pageToken=<opaco>&pageSize=<1..50, default 20>` — búsqueda de solo lectura con las credenciales resueltas en el backend (el usuario sale solo de la sesión). `q` se recorta y debe tener 2 a 100 caracteres sin caracteres de control; `pageToken` es el cursor opaco (máx. 2000 caracteres, charset URL-safe) devuelto como `nextPageToken`. Responde `{ items: IssueSummary[], nextPageToken: string | null, metadata: { fetchedAt, isStale: false } }` con `IssueSummary = { key, summary, issueType: { id, name, hierarchyLevel, isSubtask }, status: { name, categoryKey, isCancelled, isAvailable }, url }`. Una lista vacía con 200 significa "sin resultados"; todo fallo de Jira responde con su código de error y nunca con `items: []`. Entrada inválida: 400 `VALIDATION_ERROR` sin llamar a Jira.
 - `GET /dashboard/issues/:issueKey` — detalle del issue con subtareas y story points (ver `DashboardIssueResponse`). La clave se valida con el patrón de claves de issue antes de llamar a Jira (400 `VALIDATION_ERROR` si es inválida). Un issue inexistente o sin permiso responde el mismo 404 `ISSUE_NOT_FOUND_OR_INACCESSIBLE` (mismo estado, cuerpo y headers).
 - `GET /jira/issues/:issueKey/transitions` — devuelve opciones válidas desde Jira.
 - `POST /jira/issues/:issueKey/transitions` — body con `transitionId`; solo permite ID ofrecido por Jira después de revalidar; requiere confirmación UI explícita.
@@ -44,7 +44,7 @@ interface DashboardIssueResponse {
     key: string;
     summary: string;
     issueType: { id: string; name: string; hierarchyLevel: number; isSubtask: boolean };
-    status: { name: string; categoryKey: 'new' | 'indeterminate' | 'done' | 'unknown'; isCancelled: boolean };
+    status: { name: string; categoryKey: 'new' | 'indeterminate' | 'done' | 'unknown'; isCancelled: boolean; isAvailable: boolean };
     url: string;
     parentKey: string | null;
     storyPoints: { final: number | null; planned: number | null }; // null = sin estimación, nunca 0
@@ -52,14 +52,14 @@ interface DashboardIssueResponse {
   subtasks: Array<{
     key: string;
     summary: string;
-    status: { name: string; categoryKey: string; isCancelled: boolean };
+    status: { name: string; categoryKey: string; isCancelled: boolean; isAvailable: boolean };
     url: string;
   }>;
   progress: Progress;
   children?: Array<{                       // solo épicas (hijos directos, sin subtareas)
     key: string; summary: string;
     issueType: { id: string; name: string; hierarchyLevel: number; isSubtask: boolean };
-    status: { name: string; categoryKey: string; isCancelled: boolean };
+    status: { name: string; categoryKey: string; isCancelled: boolean; isAvailable: boolean };
     url: string;
     storyPoints: { final: number | null; planned: number | null };
     progress: Progress;                    // avance del hijo por sus propias subtareas
@@ -106,7 +106,7 @@ interface TrackedIssueItem {
   issue?: {
     key: string; summary: string;
     issueType: { id: string; name: string; hierarchyLevel: number; isSubtask: boolean };
-    status: { name: string; categoryKey: string; isCancelled: boolean };
+    status: { name: string; categoryKey: string; isCancelled: boolean; isAvailable: boolean };
     url: string;
     storyPoints: { final: number | null; planned: number | null };
   };

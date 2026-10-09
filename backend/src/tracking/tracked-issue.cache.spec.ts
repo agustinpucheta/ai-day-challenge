@@ -9,7 +9,7 @@ function loaded(key: string, fetchedAt = '2026-10-09T10:00:00.000Z'): LoadedIssu
       key,
       summary: key,
       issueType: { id: '1', name: 'Story', hierarchyLevel: 0, isSubtask: false },
-      status: { name: 'To do', categoryKey: 'new', isCancelled: false },
+      status: { name: 'To do', categoryKey: 'new', isCancelled: false, isAvailable: false },
       url: `${SITE}/browse/${key}`,
       storyPoints: { final: null, planned: null },
     },

@@ -368,6 +368,8 @@ export interface components {
       categoryKey: 'new' | 'indeterminate' | 'done' | 'unknown';
       /** @description The configured cancelled status (done category, not completed). */
       isCancelled: boolean;
+      /** @description Configured "available to take" status (D-025); never true for done or cancelled issues. */
+      isAvailable: boolean;
     };
     IssueSummaryDto: {
       /** @example MASIN-123 */
@@ -435,6 +437,8 @@ export interface components {
       completed: number;
       inProgress: number;
       pending: number;
+      /** @description Pending items available to take (D-025). A subset of pending, not an extra bucket. */
+      available: number;
       /** @description Cancelled items, always reported separately. */
       cancelled: number;
       /** @description Items with an unrecognized status category (never completed). */

@@ -89,7 +89,7 @@ const state = detail.state;
         <section v-else class="card" aria-labelledby="subtasks-title">
           <h2 id="subtasks-title" class="card__title">Subtasks</h2>
           <p v-if="state.data.subtasks.length === 0" class="empty-state">No subtasks</p>
-          <IssueTable v-else :issues="state.data.subtasks" caption="Subtasks" />
+          <IssueTable v-else :issues="state.data.subtasks" caption="Subtasks" available-filter />
         </section>
 
         <div class="meta">

@@ -13,7 +13,12 @@ describe('toIssueSummaryDto', () => {
       key: 'DEMO-2',
       summary: 'Story with subtasks',
       issueType: { id: '10001', name: 'Story', hierarchyLevel: 0, isSubtask: false },
-      status: { name: 'In progress', categoryKey: 'indeterminate', isCancelled: false },
+      status: {
+        name: 'In progress',
+        categoryKey: 'indeterminate',
+        isCancelled: false,
+        isAvailable: false,
+      },
       url: `${SITE}/browse/DEMO-2`,
     });
   });
@@ -61,12 +66,32 @@ describe('toDashboardIssueResponse progress and children', () => {
       completed: 1,
       inProgress: 0,
       pending: 1,
+      available: 0,
       cancelled: 1,
       unknown: 0,
       percent: 50,
       isApproximate: false,
     });
     expect(dto).not.toHaveProperty('children');
+  });
+
+  it('exposes isAvailable on every status and counts available subtasks within pending', () => {
+    const dto = toDashboardIssueResponse(issue('story-available'), FETCHED_AT);
+    expect(dto.issue.status.isAvailable).toBe(true);
+    expect(dto.subtasks.map((s) => s.status.isAvailable)).toEqual([true, false]);
+    expect(dto.progress).toMatchObject({ total: 2, pending: 2, available: 1 });
+    expect(toIssueSummaryDto(issue('story-available')).status.isAvailable).toBe(true);
+  });
+
+  it('exposes isAvailable and the available count on epic children', () => {
+    const story = issue('story-available');
+    const dto = toDashboardIssueResponse(issue('epic'), FETCHED_AT, {
+      children: [story],
+      truncated: false,
+    });
+    expect(dto.progress).toMatchObject({ total: 1, pending: 1, available: 1 });
+    expect(dto.children?.[0]?.status.isAvailable).toBe(true);
+    expect(dto.children?.[0]?.progress.available).toBe(1);
   });
 
   it('reports "none" with a null percent for a story without subtasks', () => {

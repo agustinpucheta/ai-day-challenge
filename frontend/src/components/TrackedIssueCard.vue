@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import type { ChildrenState, TrackedItem } from '@/tracking/useTrackedList';
 import { formatTime } from '@/issues/format';
+import AvailableChip from './AvailableChip.vue';
 import EpicChildrenTable from './EpicChildrenTable.vue';
 import IssueErrorState from './IssueErrorState.vue';
 import OpenInJira from './OpenInJira.vue';
@@ -40,6 +41,7 @@ const childrenId = computed(() => `tracked-${props.item.id}-children`);
       <p class="meta">
         <span class="badge badge--neutral">{{ issue.issueType.name }}</span>
         <StatusBadge :status="issue.status" />
+        <AvailableChip :count="progress.available" />
       </p>
     </header>
     <p class="tracked-card__summary">{{ issue.summary }}</p>

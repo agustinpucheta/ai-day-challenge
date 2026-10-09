@@ -86,6 +86,47 @@ describe('computeProgress', () => {
     expect(result).toMatchObject({ total: 6000, completed: 1234, percent: 20.6 });
   });
 
+  describe('available (D-025)', () => {
+    const item = (
+      key: string,
+      categoryKey: ProgressItem['status']['categoryKey'],
+      isCancelled: boolean,
+      isAvailable?: boolean,
+    ): ProgressItem => ({ key, status: { categoryKey, isCancelled, isAvailable } });
+
+    it('counts available items as a subset of pending, keeping the invariant', () => {
+      const result = computeProgress(
+        [
+          item('A-1', 'new', false, true),
+          item('A-2', 'new', false, true),
+          item('A-3', 'new', false, false),
+          item('A-4', 'new', false),
+          item('A-5', 'indeterminate', false, false),
+          item('A-6', 'done', false, false),
+        ],
+        { basis: 'children' },
+      );
+      expect(result).toMatchObject({ total: 6, pending: 4, available: 2 });
+      expect(result.available).toBeLessThanOrEqual(result.pending);
+      expect(result.completed + result.inProgress + result.pending + result.unknown).toBe(
+        result.total,
+      );
+    });
+
+    it('never counts cancelled or done items as available', () => {
+      const result = computeProgress(
+        [item('A-1', 'done', true, true), item('A-2', 'done', false, true)],
+        { basis: 'subtasks' },
+      );
+      expect(result).toMatchObject({ available: 0, pending: 0, completed: 1, cancelled: 1 });
+    });
+
+    it('is zero when nothing is available or the list is empty', () => {
+      expect(computeProgress(items('new', 'new'), { basis: 'subtasks' }).available).toBe(0);
+      expect(computeProgress([], { basis: 'subtasks' }).available).toBe(0);
+    });
+  });
+
   describe('cancelledCountsInDenominator', () => {
     it('counts cancelled as not completed when enabled', () => {
       const result = computeProgress(items('done', 'cancelled', 'new'), {

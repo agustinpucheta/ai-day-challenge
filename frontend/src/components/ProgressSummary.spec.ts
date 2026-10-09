@@ -21,6 +21,16 @@ describe('ProgressSummary', () => {
     expect(wrapper.text()).not.toContain('cancelled');
   });
 
+  it('shows an available-to-take segment only when there are available items', () => {
+    expect(summary(progress({ available: 2 })).text()).toContain('2 available to take');
+    expect(summary(progress({ available: 0 })).text()).not.toContain('available');
+    expect(
+      mount(ProgressSummary, {
+        props: { progress: progress({ available: 2 }), hideAvailable: true },
+      }).text(),
+    ).not.toContain('available');
+  });
+
   it('shows no unknown note when nothing is unknown', () => {
     expect(summary().text()).not.toContain('unknown');
   });

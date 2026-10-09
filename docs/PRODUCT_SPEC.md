@@ -32,6 +32,12 @@ Dashboard local y personalizado para seguir épicas e historias de Jira Cloud. E
 - “Cancelado” = estado Cancelado. Se excluye del avance completado y de los SP semanales consumidos, y se informa como métrica separada de “cancelados” (conteo y SP).
 - Los cancelados se excluyen del denominador del avance por defecto (D-024, configurable con `cancelledCountsInDenominator`).
 
+### Disponible para tomar
+
+- “Disponible para tomar” = el issue está en un estado configurado por id (`availableStatusIds`; hoy `10068`, “Esperar Recurso”, categoría `new`), **no** cancelado y con categoría distinta de `done` (D-025). Nunca se infiere por el nombre del estado.
+- Cada estado expuesto incluye `isAvailable`. El avance informa `available`: cuántos de los `pending` están disponibles (es un subconjunto de `pending`, no un conteo adicional; no cambia el denominador ni el porcentaje).
+- La interfaz lo distingue sin depender solo del color: insignia “Available · <estado>”, resumen “N available to take”, chip “N available” en las tarjetas y filtro local “Only available” en subtareas e hijos de una épica.
+
 ### Avance por cantidad de issues
 
 - Para una historia que tiene subtareas: subtareas completadas / total de subtareas, presentado también como conteo.

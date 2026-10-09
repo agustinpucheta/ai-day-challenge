@@ -14,6 +14,7 @@ export function toStatusDto(status: JiraStatus): IssueStatusDto {
     name: status.name,
     categoryKey: status.categoryKey,
     isCancelled: status.isCancelled,
+    isAvailable: status.isAvailable,
   };
 }
 
@@ -40,6 +41,7 @@ const NO_PROGRESS: ProgressDto = {
   completed: 0,
   inProgress: 0,
   pending: 0,
+  available: 0,
   cancelled: 0,
   unknown: 0,
   percent: null,
