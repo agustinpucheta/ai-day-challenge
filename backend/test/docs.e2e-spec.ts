@@ -38,6 +38,8 @@ describe('OpenAPI docs (e2e)', () => {
         '/api/v1/users/me/preferences',
         '/api/v1/jira/connection',
         '/api/v1/jira/connection/verify',
+        '/api/v1/jira/issues/search',
+        '/api/v1/dashboard/issues/{issueKey}',
       ]),
     );
     expect(res.body.components.securitySchemes['jd.sid']).toMatchObject({
@@ -54,6 +56,18 @@ describe('OpenAPI docs (e2e)', () => {
     expect(jiraSchemas.length).toBeGreaterThan(0);
     const jiraProperties = collectPropertyNames(Object.fromEntries(jiraSchemas));
     expect([...jiraProperties].filter((name) => /token|password|secret/i.test(name))).toEqual([]);
+  });
+
+  it('has no token, password or secret property in the Jira and dashboard schemas', async () => {
+    const res = await request(ctx.app.getHttpServer()).get('/api/docs-json').expect(200);
+    const schemas = (res.body as { components: { schemas: Record<string, unknown> } }).components
+      .schemas;
+    // Login/register inputs legitimately carry a password; opaque page cursors are not secrets.
+    const checked = Object.entries(schemas).filter(([name]) => !/^(Login|Register)/.test(name));
+    const offenders = [...collectPropertyNames(Object.fromEntries(checked))].filter(
+      (name) => !/^(next)?pageToken$/i.test(name) && /token|password|secret/i.test(name),
+    );
+    expect(offenders).toEqual([]);
   });
 
   it('serves the Swagger UI', async () => {

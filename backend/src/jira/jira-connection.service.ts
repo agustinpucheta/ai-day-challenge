@@ -1,19 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { AppException } from '../common/errors/app-exception';
-import { ErrorCode } from '../common/errors/error-codes';
 import {
   JIRA_CREDENTIAL_PROVIDER,
   type JiraCredentialProvider,
 } from './credentials/jira-credential-provider';
 import type { JiraConnectionStatusDto, JiraConnectionVerifyDto } from './dto/jira-connection.dto';
-import {
-  JiraForbiddenError,
-  JiraNotConfiguredError,
-  JiraProtocolError,
-  JiraRateLimitedError,
-  JiraUnauthorizedError,
-  JiraUnavailableError,
-} from './errors';
+import { JiraNotConfiguredError } from './errors';
+import { toAppException } from './jira-error.mapper';
 import { JiraGateway } from './jira.gateway';
 
 /**
@@ -50,41 +42,4 @@ export class JiraConnectionService {
       throw toAppException(error);
     }
   }
-}
-
-function toAppException(error: unknown): unknown {
-  if (error instanceof JiraNotConfiguredError) {
-    return new AppException(
-      409,
-      ErrorCode.JIRA_NOT_CONNECTED,
-      'Jira credentials are not configured',
-    );
-  }
-  if (error instanceof JiraUnauthorizedError) {
-    return new AppException(
-      424,
-      ErrorCode.JIRA_REAUTH_REQUIRED,
-      'Jira rejected the API token. Create a new token and replace JIRA_API_TOKEN',
-    );
-  }
-  if (error instanceof JiraForbiddenError) {
-    return new AppException(424, ErrorCode.JIRA_FORBIDDEN, 'The Jira account lacks permission');
-  }
-  if (error instanceof JiraRateLimitedError) {
-    return new AppException(
-      429,
-      ErrorCode.JIRA_RATE_LIMITED,
-      'Jira rate limit reached, try again later',
-      undefined,
-      error.retryAfterSeconds,
-    );
-  }
-  if (error instanceof JiraUnavailableError || error instanceof JiraProtocolError) {
-    return new AppException(
-      503,
-      ErrorCode.JIRA_UNAVAILABLE,
-      'Jira is unavailable, try again later',
-    );
-  }
-  return error;
 }

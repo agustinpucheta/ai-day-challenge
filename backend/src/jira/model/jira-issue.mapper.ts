@@ -87,6 +87,7 @@ export function mapJiraIssue(payload: unknown, siteUrl: string): JiraIssue {
   const { id, key, fields } = parsed.data;
   const parentSummary = fields.parent?.fields?.summary;
   const parentType = issueTypeSchema.safeParse(fields.parent?.fields?.issuetype);
+  const baseUrl = siteUrl.replace(/\/+$/, '');
   return {
     id,
     key,
@@ -108,8 +109,9 @@ export function mapJiraIssue(payload: unknown, siteUrl: string): JiraIssue {
       key: subtask.key,
       summary: subtask.fields.summary,
       status: mapStatus(subtask.fields.status),
+      url: `${baseUrl}/browse/${subtask.key}`,
     })),
-    url: `${siteUrl.replace(/\/+$/, '')}/browse/${key}`,
+    url: `${baseUrl}/browse/${key}`,
     projectKey: fields.project.key,
   };
 }

@@ -435,6 +435,234 @@
         ]
       }
     },
+    "/api/v1/jira/issues/search": {
+      "get": {
+        "operationId": "JiraIssuesController_search",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "description": "Free text or an issue key (e.g. MASIN-123). Trimmed, 2 to 100 characters.",
+            "schema": {
+              "minLength": 2,
+              "maxLength": 100,
+              "example": "MASIN-123",
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageToken",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor returned as nextPageToken by the previous page.",
+            "schema": {
+              "maxLength": 2000,
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueSearchResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_ERROR: invalid or non-whitelisted input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "424": {
+            "description": "JIRA_REAUTH_REQUIRED (Jira rejected the API token) or JIRA_FORBIDDEN (account lacks permission)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED (local throttle) or JIRA_RATE_LIMITED (Jira; see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DATABASE_UNAVAILABLE or JIRA_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jd.sid": []
+          }
+        ],
+        "summary": "Search Jira issues by text or key (read-only, token-paginated)",
+        "tags": [
+          "jira"
+        ]
+      }
+    },
+    "/api/v1/dashboard/issues/{issueKey}": {
+      "get": {
+        "operationId": "DashboardIssuesController_getIssue",
+        "parameters": [
+          {
+            "name": "issueKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "MASIN-123",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardIssueResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_ERROR: invalid or non-whitelisted input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ISSUE_NOT_FOUND_OR_INACCESSIBLE: the issue does not exist or is not visible (indistinguishable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "424": {
+            "description": "JIRA_REAUTH_REQUIRED (Jira rejected the API token) or JIRA_FORBIDDEN (account lacks permission)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED (local throttle) or JIRA_RATE_LIMITED (Jira; see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DATABASE_UNAVAILABLE or JIRA_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jd.sid": []
+          }
+        ],
+        "summary": "Issue detail with subtasks and story points (read-only)",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
     "/api/v1/health": {
       "get": {
         "operationId": "HealthController_check",
@@ -593,6 +821,7 @@
               "JIRA_NOT_CONNECTED",
               "JIRA_REAUTH_REQUIRED",
               "JIRA_FORBIDDEN",
+              "ISSUE_NOT_FOUND_OR_INACCESSIBLE",
               "JIRA_RATE_LIMITED",
               "JIRA_UNAVAILABLE",
               "INTERNAL_ERROR"
@@ -760,6 +989,263 @@
           "siteUrl",
           "displayName",
           "checkedAt"
+        ]
+      },
+      "IssueTypeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "10001",
+            "description": "Issue type id (names are localized)."
+          },
+          "name": {
+            "type": "string",
+            "example": "Story"
+          },
+          "hierarchyLevel": {
+            "type": "number",
+            "example": 0
+          },
+          "isSubtask": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "hierarchyLevel",
+          "isSubtask"
+        ]
+      },
+      "IssueStatusDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "In progress"
+          },
+          "categoryKey": {
+            "type": "string",
+            "enum": [
+              "new",
+              "indeterminate",
+              "done",
+              "unknown"
+            ]
+          },
+          "isCancelled": {
+            "type": "boolean",
+            "description": "The configured cancelled status (done category, not completed)."
+          }
+        },
+        "required": [
+          "name",
+          "categoryKey",
+          "isCancelled"
+        ]
+      },
+      "IssueSummaryDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "MASIN-123"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "issueType": {
+            "$ref": "#/components/schemas/IssueTypeDto"
+          },
+          "status": {
+            "$ref": "#/components/schemas/IssueStatusDto"
+          },
+          "url": {
+            "type": "string",
+            "example": "https://acme.atlassian.net/browse/MASIN-123"
+          }
+        },
+        "required": [
+          "key",
+          "summary",
+          "issueType",
+          "status",
+          "url"
+        ]
+      },
+      "IssueMetadataDto": {
+        "type": "object",
+        "properties": {
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When Jira was queried."
+          },
+          "isStale": {
+            "type": "boolean",
+            "example": false,
+            "description": "Always false: data is read live from Jira."
+          }
+        },
+        "required": [
+          "fetchedAt",
+          "isStale"
+        ]
+      },
+      "IssueSearchResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssueSummaryDto"
+            }
+          },
+          "nextPageToken": {
+            "type": "string",
+            "nullable": true,
+            "description": "Opaque cursor for the next page; null on the last page."
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/IssueMetadataDto"
+          }
+        },
+        "required": [
+          "items",
+          "nextPageToken",
+          "metadata"
+        ]
+      },
+      "StoryPointsDto": {
+        "type": "object",
+        "properties": {
+          "final": {
+            "type": "number",
+            "nullable": true,
+            "description": "Final SP; null means no estimate."
+          },
+          "planned": {
+            "type": "number",
+            "nullable": true,
+            "description": "Planned SP; null means no estimate."
+          }
+        },
+        "required": [
+          "final",
+          "planned"
+        ]
+      },
+      "DashboardIssueDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "example": "MASIN-123"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "issueType": {
+            "$ref": "#/components/schemas/IssueTypeDto"
+          },
+          "status": {
+            "$ref": "#/components/schemas/IssueStatusDto"
+          },
+          "url": {
+            "type": "string"
+          },
+          "parentKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "storyPoints": {
+            "$ref": "#/components/schemas/StoryPointsDto"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "summary",
+          "issueType",
+          "status",
+          "url",
+          "parentKey",
+          "storyPoints"
+        ]
+      },
+      "DashboardSubtaskDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/IssueStatusDto"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "summary",
+          "status",
+          "url"
+        ]
+      },
+      "IssueDetailMetadataDto": {
+        "type": "object",
+        "properties": {
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When Jira was queried."
+          },
+          "isStale": {
+            "type": "boolean",
+            "example": false,
+            "description": "Always false: data is read live from Jira."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "fetchedAt",
+          "isStale",
+          "warnings"
+        ]
+      },
+      "DashboardIssueResponseDto": {
+        "type": "object",
+        "properties": {
+          "issue": {
+            "$ref": "#/components/schemas/DashboardIssueDto"
+          },
+          "subtasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardSubtaskDto"
+            }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/IssueDetailMetadataDto"
+          }
+        },
+        "required": [
+          "issue",
+          "subtasks",
+          "metadata"
         ]
       },
       "HealthResponseDto": {

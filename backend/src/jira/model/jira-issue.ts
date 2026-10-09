@@ -19,6 +19,7 @@ export interface JiraSubtaskRef {
   key: string;
   summary: string;
   status: JiraStatus;
+  url: string;
 }
 
 export interface JiraIssue {

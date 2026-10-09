@@ -83,7 +83,7 @@
 - No loggear headers Authorization, cookies, OAuth codes ni secretos.
 
 - Búsqueda JQL: la entrada del usuario nunca se concatena en crudo. Una clave de issue se convierte en `key = "CLAVE"` y cualquier otro texto en `text ~ "..."` con barra invertida y comillas escapadas, caracteres de control eliminados y largo limitado; los filtros por tipo usan solo ids numéricos. Las claves de issue se validan antes de construir la URL.
-- Privacidad de issues: ante un 403 o un 404 al leer un issue, el gateway responde siempre `JiraIssueNotFoundError`, de modo que quien consulta no puede distinguir entre un issue inexistente y uno sin permiso. El estado real queda solo en un campo interno no enumerable, que no se serializa ni se expone. Una respuesta vacía solo es válida con HTTP 200; cualquier fallo lanza un error tipado y nunca se convierte en una lista vacía.
+- Privacidad de issues: ante un 403 o un 404 al leer un issue, el gateway responde siempre `JiraIssueNotFoundError`, de modo que quien consulta no puede distinguir entre un issue inexistente y uno sin permiso. El estado real queda solo en un campo interno no enumerable, que no se serializa ni se expone. En la capa HTTP (`GET /dashboard/issues/:issueKey`) ese error se traduce siempre al mismo 404 `ISSUE_NOT_FOUND_OR_INACCESSIBLE`, con idéntico estado, cuerpo y headers (hay un test que compara ambos cuerpos byte a byte); un 403 de una operación que no es de un issue concreto (la búsqueda) sí es `JIRA_FORBIDDEN` (424). Una respuesta vacía solo es válida con HTTP 200; cualquier fallo lanza un error tipado y nunca se convierte en una lista vacía.
 
 ## Secretos y repositorio
 

@@ -25,8 +25,8 @@ Requieren sesión; el usuario sale siempre de la sesión.
 
 ## Issues/dashboard
 
-- `GET /jira/issues/search?q=...` — búsqueda limitada, paginada y validada con el token del usuario actual.
-- `GET /dashboard/issues/:issueKey` — vista agregada del issue, métricas, subtareas, links y metadata de actualización.
+- `GET /jira/issues/search?q=<texto|CLAVE>&pageToken=<opaco>&pageSize=<1..50, default 20>` — búsqueda de solo lectura con las credenciales resueltas en el backend (el usuario sale solo de la sesión). `q` se recorta y debe tener 2 a 100 caracteres sin caracteres de control; `pageToken` es el cursor opaco (máx. 2000 caracteres, charset URL-safe) devuelto como `nextPageToken`. Responde `{ items: IssueSummary[], nextPageToken: string | null, metadata: { fetchedAt, isStale: false } }` con `IssueSummary = { key, summary, issueType: { id, name, hierarchyLevel, isSubtask }, status: { name, categoryKey, isCancelled }, url }`. Una lista vacía con 200 significa "sin resultados"; todo fallo de Jira responde con su código de error y nunca con `items: []`. Entrada inválida: 400 `VALIDATION_ERROR` sin llamar a Jira.
+- `GET /dashboard/issues/:issueKey` — detalle del issue con subtareas y story points (ver `DashboardIssueResponse`). La clave se valida con el patrón de claves de issue antes de llamar a Jira (400 `VALIDATION_ERROR` si es inválida). Un issue inexistente o sin permiso responde el mismo 404 `ISSUE_NOT_FOUND_OR_INACCESSIBLE` (mismo estado, cuerpo y headers).
 - `GET /jira/issues/:issueKey/transitions` — devuelve opciones válidas desde Jira.
 - `POST /jira/issues/:issueKey/transitions` — body con `transitionId`; solo permite ID ofrecido por Jira después de revalidar; requiere confirmación UI explícita.
 - `POST /users/me/tracked-issues` — body con `jiraConnectionId`, `issueKey` (o `issueId`); comprobar acceso a través de esa conexión.
@@ -35,7 +35,9 @@ Requieren sesión; el usuario sale siempre de la sesión.
 - `GET /users/me/preferences` — devuelve las preferencias del propio usuario.
 - `PATCH /users/me/preferences` — actualiza solo campos permitidos con DTO tipado.
 
-## Forma de respuesta orientativa
+## Forma de respuesta
+
+`GET /dashboard/issues/:issueKey` entrega en la fase 3 solo lo que Jira puede completar con datos reales:
 
 ```ts
 interface DashboardIssueResponse {
@@ -43,47 +45,37 @@ interface DashboardIssueResponse {
     id: string;
     key: string;
     summary: string;
-    issueType: string;
-    status: string;
-    statusCategory: string | null;
+    issueType: { id: string; name: string; hierarchyLevel: number; isSubtask: boolean };
+    status: { name: string; categoryKey: 'new' | 'indeterminate' | 'done' | 'unknown'; isCancelled: boolean };
     url: string;
-    parentKey?: string | null;
+    parentKey: string | null;
+    storyPoints: { final: number | null; planned: number | null }; // null = sin estimación, nunca 0
   };
-  progress: {
-    completed: number;
-    total: number;
-    percent: number | null;
-    basis: 'subtasks' | 'children' | 'none';
-  };
-  subtasks: {
-    completed: number;
-    pending: number;
-    inProgress: number;
-    items: Array<{ key: string; summary: string; status: string; url: string }>;
-  };
-  weeklyStoryPoints: Array<{
-    weekStart: string;
-    storyPoints: number;
-    completedIssues: number;
-    isApproximate: boolean;
+  subtasks: Array<{
+    key: string;
+    summary: string;
+    status: { name: string; categoryKey: string; isCancelled: boolean };
+    url: string;
   }>;
-  dependencies: {
-    blockers: Array<{ key: string; summary?: string; status?: string; url?: string; inaccessible?: boolean }>;
-    blockedIssues: Array<{ key: string; summary?: string; status?: string; url?: string; inaccessible?: boolean }>;
-  };
-  metadata: { fetchedAt: string; isStale: boolean; warnings: string[] };
+  metadata: { fetchedAt: string; isStale: false; warnings: string[] };
 }
 ```
 
-El tipo es un contrato conceptual. Ajustar `weeklyStoryPoints`, nombres de estados y métricas según lo que realmente devuelva Jira. No incluir datos de issues a los que el usuario no tenga acceso.
+Pendiente para las fases 4 y 5 (no se devuelven hasta poder calcularlos con código probado, para no mostrar valores falsos):
+
+- `progress` (completados, total, porcentaje y base de cálculo): fase 4.
+- `weeklyStoryPoints` (SP por semana): fase 5.
+- `dependencies` (bloqueantes y bloqueados, con `inaccessible`): fase 5.
+
+`isStale` es siempre `false` porque los datos se leen en vivo desde Jira; la caché con datos desactualizados llega con el seguimiento de issues. No incluir datos de issues a los que el usuario no tenga acceso.
 
 ## Errores normalizados
 
 - `UNAUTHENTICATED`: sesión no válida.
 - `JIRA_NOT_CONNECTED` (HTTP 409): faltan las credenciales de Jira (`JIRA_URL`, `JIRA_USERNAME`, `JIRA_API_TOKEN`) o no hay conexión activa.
 - `JIRA_REAUTH_REQUIRED` (HTTP 424): Jira respondió 401; el API token es inválido, venció o fue revocado (o refresh expirado/revocado en modo OAuth). Hay que reemplazar el token.
-- `JIRA_FORBIDDEN` (HTTP 424): Jira respondió 403; la cuenta no tiene permiso.
-- `ISSUE_NOT_FOUND_OR_INACCESSIBLE`: no revelar si un issue existe sin permiso.
+- `JIRA_FORBIDDEN` (HTTP 424): Jira respondió 403 en una operación que no es de un issue concreto (por ejemplo la búsqueda); la cuenta no tiene permiso.
+- `ISSUE_NOT_FOUND_OR_INACCESSIBLE` (HTTP 404): el issue no existe o la cuenta no puede verlo; no se distingue (Jira 404 y 403 sobre un issue concreto producen la misma respuesta).
 - `JIRA_RATE_LIMITED` (HTTP 429, con `Retry-After` si Jira lo envía): informar y reintentar según reglas.
 - `JIRA_UNAVAILABLE` (HTTP 503): fallo upstream (5xx, red, timeout o respuesta inesperada); conservar respuesta anterior como stale si es seguro.
 - `INVALID_TRANSITION`: transition ID inválido o ya no disponible.

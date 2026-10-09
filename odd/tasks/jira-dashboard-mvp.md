@@ -66,7 +66,7 @@ MVP phases 0–9 from `docs/IMPLEMENTATION_PLAN.md`. The license flow is now in 
   - Note: OAuth HTTP layer (start/callback/connections/disconnect) + OAuth frontend + multi-user isolation tests moved to the post-MVP backlog ("Backlog post-MVP: modo multiusuario con OAuth" in `docs/IMPLEMENTATION_PLAN.md`).
 - [ ] **F3** — Jira Gateway and search/read. Gate: user sees a permitted real issue; inaccessible issues leak nothing; errors never become empty lists/0%. Small commits, one slice each:
   - [x] F3.1 Gateway read core: typed Jira field config (evidence-backed IDs), REST v3 normalizers (issue type by id/hierarchyLevel/subtask, status + statusCategory.key, both SP fields, parent, subtasks), safe JQL builder (key vs text, escaping), `searchIssues` (`nextPageToken`) and `getIssue`; REST v3 fixtures + contract tests.
-  - [ ] F3.2 HTTP layer: `GET /jira/issues/search` and `GET /dashboard/issues/:issueKey` (normalized issue, subtasks, `fetchedAt`), inaccessible/not-found indistinguishable, OpenAPI regenerated; e2e with fake Jira.
+  - [x] F3.2 HTTP layer: `GET /jira/issues/search` and `GET /dashboard/issues/:issueKey` (normalized issue, subtasks, `fetchedAt`), inaccessible/not-found indistinguishable, OpenAPI regenerated; e2e with fake Jira.
   - [ ] F3.3 Frontend: search + issue detail with loading/error/empty/forbidden/stale states; regenerate API types.
   - [ ] F3.4 Docs + real read-only check against the owner's Jira.
 - [ ] **F4** — Metrics, subtasks and weekly SP. Gate: tests for story without subtasks, empty epic, null fields, estimate changes, in/out of period, reopen, pagination, duplicates.

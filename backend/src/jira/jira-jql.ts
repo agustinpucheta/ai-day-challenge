@@ -18,6 +18,11 @@ const CONTROL_CHARS = new RegExp(
   'g',
 );
 
+/** True when the text contains control or line-separator characters. */
+export function containsControlChars(input: string): boolean {
+  return input.search(CONTROL_CHARS) !== -1;
+}
+
 /**
  * Builds the JQL for a user-typed query. The input is never concatenated raw: an issue key
  * becomes `key = "KEY"`, anything else becomes a quoted text search with backslash and double

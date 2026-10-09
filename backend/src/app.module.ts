@@ -5,6 +5,7 @@ import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { Env, ROOT_ENV_FILE, validateEnv } from './config/env';
 import { CryptoModule } from './crypto/crypto.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthModule } from './health/health.module';
 import { JiraOAuthModule } from './jira/jira-oauth.module';
 import { JiraModule } from './jira/jira.module';
@@ -40,6 +41,7 @@ import { UsersModule } from './users/users.module';
     PreferencesModule,
     JiraOAuthModule,
     JiraModule,
+    DashboardModule,
     HealthModule,
   ],
 })
