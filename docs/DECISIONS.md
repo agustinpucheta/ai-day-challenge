@@ -99,3 +99,11 @@
 **Decisión:** los tokens de acceso y de refresco se cifran con AES-256-GCM usando `crypto` de Node (sin dependencias nuevas), con IV aleatorio de 12 bytes, formato versionado `v1.<versionClave>.<iv>.<tag>.<ciphertext>` y AAD igual al identificador de la conexión. La clave vigente sale de `TOKEN_ENCRYPTION_KEY` / `TOKEN_ENCRYPTION_KEY_VERSION`; las versiones anteriores, solo para descifrar, de `TOKEN_ENCRYPTION_PREVIOUS_KEYS`. La clave es obligatoria únicamente cuando Jira OAuth está configurado (cliente, secreto y redirect URI), de modo que la API arranca sin Jira.
 
 **Tradeoff:** sin KMS externo, la seguridad depende de custodiar la variable de entorno; la rotación es manual pero sin reescritura masiva. El AAD exige conocer el id de la conexión antes de cifrar (se genera el UUID en la aplicación al crear la fila).
+
+## D-019 — Puerto HTTP y Atlassian falso para las pruebas de OAuth (Fase 2)
+
+**Fecha:** 2026-10-09.
+
+**Decisión:** el cliente OAuth de Atlassian (`AtlassianOAuthClient`) recibe un `HttpPort` (`postJson` / `getJson`, devuelve `{ status, headers, body }`) en lugar de usar `fetch` directamente. La implementación por defecto (`FetchHttpPort`) usa `fetch` global con timeout de 10 s, sin redirecciones y sin reintentos. Las pruebas usan `FakeAtlassian` (`backend/test/utils/fake-atlassian.ts`), un doble en memoria con códigos de autorización de un solo uso, refresh token rotatorio (cada refresh invalida el anterior), revocación y fallos programables (`invalid_grant`, 429 con `Retry-After`, 500, cuerpo mal formado, error de red). Los errores del cliente son tipados y de mensaje fijo, sin tokens, secreto, códigos ni cuerpos remotos.
+
+**Tradeoff:** el doble reproduce el contrato documentado, no el comportamiento real de Atlassian, por lo que la verificación con credenciales reales sigue siendo manual (F2.6). A cambio, las pruebas son deterministas, no usan red y se reutilizan en F2.3 y F2.4.

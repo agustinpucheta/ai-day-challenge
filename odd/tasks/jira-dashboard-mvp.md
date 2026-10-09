@@ -56,7 +56,7 @@ MVP phases 0–8 from `docs/IMPLEMENTATION_PLAN.md`. Out of scope: Microsoft SSO
   - [x] F1.6 Phase close: commits 8807b3f (backend) and 907339d (frontend), pushed. Native review: declined by context budget (lens_context_budget_exceeded, 137 files / ~18k lines); user chose to skip. Lesson: keep commits small so each is reviewable.
 - [ ] **F2** — Individual Jira Cloud OAuth. Gate: user B cannot use user A's connection or inspect tokens; tests cover invalid callback, state replay, expiry, refresh rotation, revocation. Small commits, one slice each (review-sized):
   - [x] F2.1 Token encryption (AES-256-GCM, key version) + env schema (Atlassian vars optional: unset = feature disabled) + migration for `jira_connections` and `oauth_states`.
-  - [ ] F2.2 OAuth state service (one-time, session-bound, short expiry) + Atlassian OAuth client (authorize URL, code exchange, accessible-resources, refresh) behind an injectable HTTP port; tests with a fake Atlassian.
+  - [x] F2.2 OAuth state service (one-time, session-bound, short expiry) + Atlassian OAuth client (authorize URL, code exchange, accessible-resources, refresh) behind an injectable HTTP port; tests with a fake Atlassian.
   - [ ] F2.3 Connections service: persist encrypted tokens per user+cloudId, serialized rotating refresh, `reauthorization_required` status, disconnect with revoke.
   - [ ] F2.4 HTTP layer: oauth start/callback, GET/DELETE connections, `/auth/me` jira status, OpenAPI regenerated; e2e with fake Atlassian (invalid callback, state replay, expiry, rotation, revocation, user isolation).
   - [ ] F2.5 Frontend: Connect Jira button, connected/reauth/not-configured states, disconnect; regenerate API types.

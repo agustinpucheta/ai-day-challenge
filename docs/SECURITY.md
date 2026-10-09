@@ -31,6 +31,14 @@
 - AAD: cada token se vincula al identificador de su conexión, de modo que un ciphertext copiado a otra fila no descifra.
 - Los errores de descifrado (`TokenDecryptionError`) no incluyen texto plano, claves ni ciphertext.
 
+## State de OAuth
+
+- El `state` son 32 bytes aleatorios (base64url). En `oauth_states` solo se guarda su hash SHA-256; el valor en claro viaja únicamente hacia Atlassian y de vuelta en el callback.
+- Queda vinculado al usuario y a la sesión que lo emitió y vence a los 10 minutos.
+- El consumo es atómico: un único `UPDATE ... WHERE state_hash = ? AND consumed_at IS NULL AND expires_at > now() AND user_id = ? AND session_id = ?`. Si dos solicitudes compiten o se reproduce el callback, solo una gana.
+- El servicio distingue internamente `invalid`, `expired`, `replayed` y `wrong_session` para auditoría y logs; la capa HTTP debe responder siempre con un único error genérico.
+- Un intento de otro usuario o de otra sesión no consume el `state`. Las filas vencidas se eliminan con `deleteExpired()` (todavía sin programar).
+
 ## Autorización multiusuario
 
 - El usuario propietario se obtiene de sesión autenticada.
