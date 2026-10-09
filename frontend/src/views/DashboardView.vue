@@ -76,7 +76,6 @@ const refreshing = computed(() => state.value.kind === 'loaded' && state.value.r
         label="Search by text or issue key"
         @search="onSearch"
       />
-      <StateLegend />
     </div>
 
     <JiraConnectionPanel
@@ -85,6 +84,8 @@ const refreshing = computed(() => state.value.kind === 'loaded' && state.value.r
       @verify="jira.verify"
       @reload="jira.reload"
     />
+
+    <StateLegend />
 
     <div class="stack" aria-live="polite">
       <div v-if="state.kind === 'loading'" class="grid grid--cards" data-testid="tracking-skeleton">
@@ -124,7 +125,7 @@ const refreshing = computed(() => state.value.kind === 'loaded' && state.value.r
         </div>
 
         <ul class="grid grid--cards cards">
-          <li v-for="item in state.items" :key="item.id">
+          <li v-for="(item, index) in state.items" :key="item.id">
             <TrackedIssueErrorCard
               v-if="item.status === 'error' || !item.issue || !item.progress"
               :item="item"
@@ -138,6 +139,7 @@ const refreshing = computed(() => state.value.kind === 'loaded' && state.value.r
             <TrackedIssueCard
               v-else
               :item="item"
+              :tone-index="index"
               :expanded="list.expanded.has(item.issueKey)"
               :children="list.children.get(item.issueKey)"
               :removing="tracking.isPending(item.issueKey)"

@@ -1,28 +1,34 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
+import AvailableChip from '@/components/AvailableChip.vue';
 import EpicChildrenTable from '@/components/EpicChildrenTable.vue';
 import IssueErrorState from '@/components/IssueErrorState.vue';
 import IssueTable from '@/components/IssueTable.vue';
 import LastFetched from '@/components/LastFetched.vue';
+import LineProgress from '@/components/LineProgress.vue';
 import OpenInJira from '@/components/OpenInJira.vue';
-import ProgressBar from '@/components/ProgressBar.vue';
 import ProgressSummary from '@/components/ProgressSummary.vue';
+import StateLegend from '@/components/StateLegend.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
 import StoryPointsBlock from '@/components/StoryPointsBlock.vue';
 import TrackToggle from '@/components/TrackToggle.vue';
+import { lineTone } from '@/issues/progress';
 import { useDashboardIssue } from '@/issues/useDashboardIssue';
 
 const route = useRoute();
 const issueKey = computed(() => String(route.params.key ?? ''));
 const detail = useDashboardIssue(issueKey);
 const state = detail.state;
+/** A detail page has no list to take a position in, so its line keeps the ink of its key. */
+const tone = computed(() => lineTone(issueKey.value));
 </script>
 
 <template>
   <section
     class="page"
     aria-labelledby="issue-title"
+    :data-tone="tone"
     :aria-busy="state.kind === 'loading' || (state.kind === 'loaded' && state.refreshing)"
   >
     <p><RouterLink :to="{ name: 'issues' }">← Back to search</RouterLink></p>
@@ -31,6 +37,12 @@ const state = detail.state;
       <template v-if="state.kind === 'loading'">
         <h1 id="issue-title">{{ issueKey }}</h1>
         <p class="muted">Loading issue…</p>
+        <div class="skeleton-card" aria-hidden="true">
+          <span class="skeleton skeleton--title"></span>
+          <span class="skeleton skeleton--numeral"></span>
+          <span class="skeleton skeleton--rail"></span>
+          <span class="skeleton skeleton--line"></span>
+        </div>
       </template>
 
       <template v-else-if="state.kind === 'error'">
@@ -39,51 +51,66 @@ const state = detail.state;
       </template>
 
       <template v-else>
-        <header class="stack">
+        <header class="issue-head">
+          <span class="issue-head__tab" aria-hidden="true"></span>
           <h1 id="issue-title">
             <span class="issue-key">{{ state.data.issue.key }}</span>
             {{ state.data.issue.summary }}
           </h1>
           <p class="meta">
             <span class="badge badge--neutral">{{ state.data.issue.issueType.name }}</span>
-            <StatusBadge :status="state.data.issue.status" />
-            <OpenInJira :url="state.data.issue.url" :issue-key="state.data.issue.key" />
-            <TrackToggle :issue-key="state.data.issue.key" primary />
+            <StatusBadge :status="state.data.issue.status" mark />
+            <AvailableChip :count="state.data.progress.available" />
           </p>
-          <p v-if="state.data.issue.parentKey">
+          <p v-if="state.data.issue.parentKey" class="issue-head__parent">
             Parent:
             <RouterLink :to="{ name: 'issue', params: { key: state.data.issue.parentKey } }">{{
               state.data.issue.parentKey
             }}</RouterLink>
           </p>
+          <div class="issue-head__actions">
+            <TrackToggle :issue-key="state.data.issue.key" primary />
+            <OpenInJira :url="state.data.issue.url" :issue-key="state.data.issue.key" />
+          </div>
         </header>
 
-        <section class="card card--prominent" aria-labelledby="progress-title">
-          <h2 id="progress-title" class="card__title">Progress</h2>
-          <div class="stack">
-            <ProgressBar
-              :progress="state.data.progress"
-              :label="`${state.data.issue.key} progress`"
-            />
-            <ProgressSummary
-              :progress="state.data.progress"
-              :warnings="state.data.metadata.warnings"
-            />
-          </div>
-        </section>
+        <StateLegend />
 
-        <section class="card" aria-labelledby="sp-title">
-          <h2 id="sp-title" class="card__title">Story points</h2>
-          <StoryPointsBlock
-            :final="state.data.issue.storyPoints.final"
-            :planned="state.data.issue.storyPoints.planned"
-          />
-        </section>
+        <div class="issue-overview">
+          <section class="card card--prominent" aria-labelledby="progress-title">
+            <h2 id="progress-title" class="card__title">Progress</h2>
+            <div class="stack">
+              <LineProgress
+                :progress="state.data.progress"
+                :tone-index="tone"
+                :label="`${state.data.issue.key} progress`"
+                size="lg"
+              />
+              <ProgressSummary
+                :progress="state.data.progress"
+                :warnings="state.data.metadata.warnings"
+              />
+            </div>
+          </section>
+
+          <section class="card" aria-labelledby="sp-title">
+            <h2 id="sp-title" class="card__title">Story points</h2>
+            <StoryPointsBlock
+              :final="state.data.issue.storyPoints.final"
+              :planned="state.data.issue.storyPoints.planned"
+            />
+          </section>
+        </div>
 
         <section v-if="state.data.children" class="card" aria-labelledby="children-title">
           <h2 id="children-title" class="card__title">Stories</h2>
           <p v-if="state.data.children.length === 0" class="empty-state">No children yet</p>
-          <EpicChildrenTable v-else :children="state.data.children" caption="Stories" />
+          <EpicChildrenTable
+            v-else
+            :children="state.data.children"
+            caption="Stories"
+            :tone-offset="tone + 1"
+          />
         </section>
 
         <section v-else class="card" aria-labelledby="subtasks-title">
@@ -92,7 +119,7 @@ const state = detail.state;
           <IssueTable v-else :issues="state.data.subtasks" caption="Subtasks" available-filter />
         </section>
 
-        <div class="meta">
+        <div class="meta issue-foot">
           <LastFetched :fetched-at="state.data.metadata.fetchedAt" />
           <button
             type="button"

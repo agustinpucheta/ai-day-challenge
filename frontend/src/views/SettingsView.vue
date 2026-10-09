@@ -61,18 +61,25 @@ onMounted(load);
 
 <template>
   <section class="page" aria-labelledby="settings-title">
-    <h1 id="settings-title">Settings</h1>
+    <header class="page-header">
+      <h1 id="settings-title">Settings</h1>
+    </header>
 
-    <div v-if="loading" class="card" aria-busy="true">
+    <div v-if="loading" class="card form-card stack" aria-busy="true">
       <p class="muted">Loading preferences…</p>
+      <div aria-hidden="true" class="stack">
+        <span class="skeleton skeleton--title"></span>
+        <span class="skeleton skeleton--field"></span>
+        <span class="skeleton skeleton--field"></span>
+      </div>
     </div>
 
-    <div v-else-if="loadError" class="card stack">
+    <div v-else-if="loadError" class="card form-card stack">
       <ErrorAlert :error="loadError" />
       <div><button type="button" class="button" @click="load">Try again</button></div>
     </div>
 
-    <form v-else-if="form" class="card stack" novalidate @submit.prevent="onSubmit">
+    <form v-else-if="form" class="card form-card stack" novalidate @submit.prevent="onSubmit">
       <h2 class="card__title">Dashboard preferences</h2>
 
       <div class="field">
@@ -122,7 +129,7 @@ onMounted(load);
         Preferences saved.
       </p>
 
-      <div>
+      <div class="form-actions">
         <button type="submit" class="button button--primary" :disabled="!hasChanges || saving">
           {{ saving ? 'Saving…' : 'Save changes' }}
         </button>

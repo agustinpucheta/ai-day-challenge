@@ -39,7 +39,7 @@ defineSlots<{ actions?: (props: { issue: IssueRow }) => unknown }>();
     <p v-if="availableFilter && onlyAvailable && rows.length === 0" class="empty-state">
       No available items
     </p>
-    <div v-else class="table-wrap">
+    <div v-else class="table-wrap" role="region" :aria-label="caption" tabindex="0">
       <table class="table">
         <caption class="sr-only">
           {{
@@ -62,14 +62,14 @@ defineSlots<{ actions?: (props: { issue: IssueRow }) => unknown }>();
             :key="issue.key"
             :class="{ 'is-available': issue.status.isAvailable }"
           >
-            <td>
+            <td class="table__key">
               <RouterLink :to="{ name: 'issue', params: { key: issue.key } }">{{
                 issue.key
               }}</RouterLink>
             </td>
-            <td>{{ issue.summary }}</td>
+            <td class="table__summary">{{ issue.summary }}</td>
             <td v-if="showType">{{ issue.issueType?.name }}</td>
-            <td><StatusBadge :status="issue.status" /></td>
+            <td><StatusBadge :status="issue.status" mark /></td>
             <td><OpenInJira :url="issue.url" :issue-key="issue.key" /></td>
             <td v-if="$slots.actions"><slot name="actions" :issue="issue" /></td>
           </tr>

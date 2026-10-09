@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { ALL_CANCELLED, NO_CHILDREN, NO_SUBTASKS, progress } from '@/test/fixtures';
 import LineProgress from './LineProgress.vue';
 
-const line = (p = progress(), tone = 0, label = 'MASIN-1 progress') =>
-  mount(LineProgress, { props: { progress: p, tone, label } });
+const line = (p = progress(), toneIndex = 0, label = 'MASIN-1 progress') =>
+  mount(LineProgress, { props: { progress: p, toneIndex, label } });
 
 const kinds = (wrapper: ReturnType<typeof line>) =>
   wrapper.findAll('[data-station]').map((el) => el.attributes('data-station'));

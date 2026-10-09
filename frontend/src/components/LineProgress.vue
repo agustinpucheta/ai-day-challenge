@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { Progress } from '@/api/client';
-import { countsText, displayPercent, formatPercent, stationPlan } from '@/issues/progress';
+import { countsText, displayPercent, formatPercent, stationPlan, toneAt } from '@/issues/progress';
 import StationMark from './StationMark.vue';
 
 /**
@@ -15,13 +15,15 @@ const props = withDefaults(
   defineProps<{
     /** Omit (or pass `broken`) when the read failed: there is nothing to measure. */
     progress?: Progress | null;
-    /** Index of the line ink, 0 to 3; wraps around. */
-    tone?: number;
+    /** Index of the line ink, 0 to 3; wraps around. Assigned by position in the list. */
+    toneIndex?: number;
+    /** `sm` for a row of a table, `lg` for the head of a detail page. */
+    size?: 'sm' | 'md' | 'lg';
     /** Accessible name of the progressbar, e.g. "MASIN-1 progress". */
     label: string;
     broken?: boolean;
   }>(),
-  { progress: null, tone: 0, broken: false },
+  { progress: null, toneIndex: 0, size: 'md', broken: false },
 );
 
 const percent = computed(() =>
@@ -62,13 +64,14 @@ const valueText = computed(() =>
     ? `${percentText.value}, ${countsText(props.progress)}`
     : undefined,
 );
-const toneIndex = computed(() => ((Math.trunc(props.tone) % 4) + 4) % 4);
+const tone = computed(() => toneAt(props.toneIndex));
 </script>
 
 <template>
   <div
     class="line-progress"
-    :data-tone="toneIndex"
+    :data-tone="tone"
+    :data-size="size"
     :data-state="variant"
     :data-compressed="compressed || undefined"
     :style="{ '--stations': stations.length || undefined }"

@@ -5,9 +5,15 @@ import { epicItem, okItem, progress } from '@/test/fixtures';
 import { createTestRouter } from '@/test/router';
 import TrackedIssueCard from './TrackedIssueCard.vue';
 
-const mountCard = (item: unknown) =>
+const mountCard = (item: unknown, toneIndex = 0) =>
   mount(TrackedIssueCard, {
-    props: { item: item as TrackedItem, expanded: false, removing: false, removeError: null },
+    props: {
+      item: item as TrackedItem,
+      expanded: false,
+      removing: false,
+      removeError: null,
+      toneIndex,
+    },
     global: { plugins: [createTestRouter()] },
   });
 
@@ -30,13 +36,15 @@ describe('TrackedIssueCard available chip', () => {
 });
 
 describe('TrackedIssueCard transit line', () => {
-  it('draws the progress as a line in a stable ink, with the exact counts in words', () => {
+  it('draws the progress as a line in the ink of its position, with the exact counts in words', () => {
     const first = mountCard(okItem('MASIN-1'));
-    const again = mountCard(okItem('MASIN-1'));
+    const third = mountCard(okItem('MASIN-1'), 2);
 
     const line = first.get('.line-progress');
-    expect(line.attributes('data-tone')).toBe(again.get('.line-progress').attributes('data-tone'));
-    expect(first.get('article').attributes('data-tone')).toBe(line.attributes('data-tone'));
+    expect(line.attributes('data-tone')).toBe('0');
+    expect(first.get('article').attributes('data-tone')).toBe('0');
+    expect(third.get('.line-progress').attributes('data-tone')).toBe('2');
+    expect(third.get('article').attributes('data-tone')).toBe('2');
     expect(first.get('[role="progressbar"]').attributes('aria-label')).toBe('MASIN-1 progress');
     expect(first.text()).toContain('7 of 12 done · 3 in progress · 2 pending · 1 cancelled');
     expect(first.find('.tracked-card__tab').exists()).toBe(true);

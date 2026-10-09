@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router';
+import AuthShell from '@/components/AuthShell.vue';
 import { sanitizeRedirect } from '@/router/redirect';
 
 const route = useRoute();
@@ -12,15 +13,13 @@ function retry(): void {
 </script>
 
 <template>
-  <main class="auth-page">
-    <section class="card auth-card stack" aria-labelledby="unavailable-title">
-      <h1 id="unavailable-title">Service unavailable</h1>
-      <p class="alert alert--error" role="alert">
-        Your session could not be checked because the server is unreachable or returned an error.
-      </p>
-      <div>
-        <button type="button" class="button button--primary" @click="retry">Try again</button>
-      </div>
-    </section>
-  </main>
+  <AuthShell title-id="unavailable-title">
+    <h1 id="unavailable-title">Service unavailable</h1>
+    <p class="alert alert--error" role="alert">
+      Your session could not be checked because the server is unreachable or returned an error.
+    </p>
+    <div>
+      <button type="button" class="button button--primary" @click="retry">Try again</button>
+    </div>
+  </AuthShell>
 </template>

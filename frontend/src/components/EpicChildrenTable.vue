@@ -1,19 +1,25 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import type { DashboardChild } from '@/api/client';
+import { toneAt } from '@/issues/progress';
 import AvailableChip from './AvailableChip.vue';
 import AvailableOnlyToggle from './AvailableOnlyToggle.vue';
+import LineProgress from './LineProgress.vue';
 import OpenInJira from './OpenInJira.vue';
-import ProgressBar from './ProgressBar.vue';
 import ProgressSummary from './ProgressSummary.vue';
 import StatusBadge from './StatusBadge.vue';
 import StoryPointsInline from './StoryPointsInline.vue';
 
-const props = defineProps<{
-  children: readonly DashboardChild[];
-  caption: string;
-  compact?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    children: readonly DashboardChild[];
+    caption: string;
+    compact?: boolean;
+    /** Where the cycle of line inks starts, so a table never opens with its parent's ink. */
+    toneOffset?: number;
+  }>(),
+  { compact: false, toneOffset: 0 },
+);
 
 /** Local state on purpose: the filter is never persisted. */
 const onlyAvailable = ref(false);
@@ -26,8 +32,8 @@ const rows = computed(() =>
   <div class="stack">
     <AvailableOnlyToggle v-model="onlyAvailable" />
     <p v-if="rows.length === 0" class="empty-state">No available items</p>
-    <div v-else class="table-wrap">
-      <table class="table table--children">
+    <div v-else class="table-wrap" role="region" :aria-label="caption" tabindex="0">
+      <table :class="['table', 'table--children', { 'table--compact': compact }]">
         <caption class="sr-only">
           {{
             caption
@@ -46,24 +52,29 @@ const rows = computed(() =>
         </thead>
         <tbody>
           <tr
-            v-for="child in rows"
+            v-for="(child, index) in rows"
             :key="child.key"
             :class="{ 'is-available': child.status.isAvailable }"
           >
-            <td>
+            <td class="table__key">
               <RouterLink :to="{ name: 'issue', params: { key: child.key } }">{{
                 child.key
               }}</RouterLink>
             </td>
-            <td>{{ child.summary }}</td>
+            <td class="table__summary">{{ child.summary }}</td>
             <td v-if="!compact">{{ child.issueType.name }}</td>
-            <td><StatusBadge :status="child.status" /></td>
+            <td><StatusBadge :status="child.status" mark /></td>
             <td class="table__progress">
-              <ProgressBar :progress="child.progress" :label="`${child.key} progress`" size="sm" />
+              <LineProgress
+                :progress="child.progress"
+                :tone-index="toneAt(index + toneOffset)"
+                :label="`${child.key} progress`"
+                size="sm"
+              />
               <ProgressSummary :progress="child.progress" hide-available />
               <AvailableChip :count="child.progress.available" />
             </td>
-            <td>
+            <td class="table__sp">
               <StoryPointsInline
                 :planned="child.storyPoints.planned"
                 :final="child.storyPoints.final"

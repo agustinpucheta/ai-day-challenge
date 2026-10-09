@@ -1,28 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { storyPointsDeviation } from '@/issues/format';
+import StoryPointsInline from './StoryPointsInline.vue';
 
-const props = defineProps<{ final: number | null; planned: number | null }>();
-
-const deviation = computed(() => storyPointsDeviation(props.final, props.planned));
+/** The story points of a detail page: large fields plus the deviation hint. */
+defineProps<{ final: number | null; planned: number | null }>();
 </script>
 
 <template>
-  <dl class="stats" aria-label="Story points">
-    <div class="stats__item" data-testid="sp-final">
-      <dt>Final (consumed)</dt>
-      <dd>
-        <span v-if="final !== null" class="stats__value">{{ final }}</span>
-        <span v-else class="muted">Not estimated</span>
-        <span v-if="deviation" class="badge badge--warning">{{ deviation }}</span>
-      </dd>
-    </div>
-    <div class="stats__item" data-testid="sp-planned">
-      <dt>Planned</dt>
-      <dd>
-        <span v-if="planned !== null" class="stats__value">{{ planned }}</span>
-        <span v-else class="muted">Not estimated</span>
-      </dd>
-    </div>
-  </dl>
+  <StoryPointsInline
+    :planned="planned"
+    :final="final"
+    size="lg"
+    final-label="Final (consumed)"
+    show-deviation
+  />
 </template>

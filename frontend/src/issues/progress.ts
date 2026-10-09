@@ -1,4 +1,4 @@
-import type { Progress } from '@/api/client';
+import type { IssueStatus, Progress } from '@/api/client';
 
 /** "33.3%" / "100%": one decimal only when the value needs it. */
 export function formatPercent(percent: number): string {
@@ -105,4 +105,28 @@ export function lineTone(key: string): 0 | 1 | 2 | 3 {
   let hash = 0;
   for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
   return (hash % 4) as 0 | 1 | 2 | 3;
+}
+
+/**
+ * The station form that stands for one issue's status, so a list of issues speaks the same
+ * language as a line: cancelled and available win over the category, as they do in the badge.
+ */
+export function statusStation(status: Readonly<IssueStatus>): StationKind {
+  if (status.isCancelled) return 'cancelled';
+  if (status.isAvailable) return 'available';
+  switch (status.categoryKey) {
+    case 'done':
+      return 'done';
+    case 'indeterminate':
+      return 'inProgress';
+    case 'new':
+      return 'pending';
+    default:
+      return 'unknown';
+  }
+}
+
+/** Ink index for the item at `position` in a list: cycles the four inks so neighbours differ. */
+export function toneAt(position: number): 0 | 1 | 2 | 3 {
+  return (((Math.trunc(position) % 4) + 4) % 4) as 0 | 1 | 2 | 3;
 }

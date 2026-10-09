@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import type { ChildrenState, TrackedItem } from '@/tracking/useTrackedList';
 import { formatTime } from '@/issues/format';
-import { lineTone } from '@/issues/progress';
+import { toneAt } from '@/issues/progress';
 import AvailableChip from './AvailableChip.vue';
 import EpicChildrenTable from './EpicChildrenTable.vue';
 import IssueErrorState from './IssueErrorState.vue';
@@ -14,13 +14,18 @@ import StopTrackingControl from './StopTrackingControl.vue';
 import StoryPointsInline from './StoryPointsInline.vue';
 
 /** A tracked issue whose Jira read succeeded: `issue` and `progress` are always present. */
-const props = defineProps<{
-  item: TrackedItem;
-  expanded: boolean;
-  children?: ChildrenState;
-  removing: boolean;
-  removeError: string | null;
-}>();
+const props = withDefaults(
+  defineProps<{
+    item: TrackedItem;
+    expanded: boolean;
+    children?: ChildrenState;
+    removing: boolean;
+    removeError: string | null;
+    /** Position of the card in its list: it picks the line ink, so neighbours never match. */
+    toneIndex?: number;
+  }>(),
+  { children: undefined, toneIndex: 0 },
+);
 
 defineEmits<{ toggle: []; retryChildren: []; remove: [] }>();
 
@@ -29,7 +34,7 @@ const progress = computed(() => props.item.progress);
 /** Only epics report a children count. */
 const isEpic = computed(() => props.item.childrenCount !== undefined);
 const fetchedTime = computed(() => formatTime(props.item.fetchedAt));
-const tone = computed(() => lineTone(props.item.issueKey));
+const tone = computed(() => toneAt(props.toneIndex));
 const titleId = computed(() => `tracked-${props.item.id}-title`);
 const childrenId = computed(() => `tracked-${props.item.id}-children`);
 </script>
@@ -55,7 +60,7 @@ const childrenId = computed(() => `tracked-${props.item.id}-children`);
     <p class="tracked-card__summary">{{ issue.summary }}</p>
 
     <div class="tracked-card__progress">
-      <LineProgress :progress="progress" :tone="tone" :label="`${issue.key} progress`" />
+      <LineProgress :progress="progress" :tone-index="tone" :label="`${issue.key} progress`" />
       <ProgressSummary :progress="progress" :warnings="item.warnings" />
     </div>
 
@@ -89,6 +94,7 @@ const childrenId = computed(() => `tracked-${props.item.id}-children`);
           v-else
           :children="children.children"
           :caption="`Stories of ${issue.key}`"
+          :tone-offset="tone + 1"
           compact
         />
       </div>

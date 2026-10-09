@@ -46,4 +46,17 @@ describe('StatusBadge', () => {
     expect(wrapper.text()).toBe('Cancelled');
     expect(wrapper.classes()).toContain('badge--cancelled');
   });
+
+  it('draws the station form of the state before the name when asked to', () => {
+    const wrapper = mount(StatusBadge, {
+      props: {
+        mark: true,
+        status: { name: 'Closed', categoryKey: 'done', isCancelled: true, isAvailable: false },
+      },
+    });
+
+    expect(wrapper.get('[data-station]').attributes('data-station')).toBe('cancelled');
+    expect(wrapper.text()).toBe('Cancelled');
+    expect(badge('new').find('[data-station]').exists()).toBe(false);
+  });
 });

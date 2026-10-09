@@ -41,6 +41,8 @@ function onSubmit(): void {
       />
       <p v-if="error" :id="`${inputId}-error`" class="field__error" role="alert">{{ error }}</p>
     </div>
-    <button type="submit" class="button button--primary" :disabled="busy">Search</button>
+    <button type="submit" class="button button--primary search-form__submit" :disabled="busy">
+      Search
+    </button>
   </form>
 </template>

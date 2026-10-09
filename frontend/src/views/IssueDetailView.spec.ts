@@ -209,7 +209,7 @@ describe('IssueDetailView', () => {
 
       const { wrapper } = await mountAt('/issues/MASIN-1');
 
-      expect(wrapper.get('.progress__value').text()).toBe('100%');
+      expect(wrapper.get('.line-progress__percent').text()).toBe('100%');
     });
 
     it.each([
@@ -266,13 +266,15 @@ describe('IssueDetailView', () => {
 
       expect(wrapper.get('h2#children-title').text()).toBe('Stories');
       expect(wrapper.find('#subtasks-title').exists()).toBe(false);
-      expect(wrapper.get('.progress__value').text()).toBe('50%');
+      expect(wrapper.get('.line-progress__percent').text()).toBe('50%');
       const rows = wrapper.findAll('tbody tr');
       expect(rows).toHaveLength(2);
       expect(rows[0]!.get('a').attributes('href')).toBe('/issues/MASIN-10');
       expect(rows[0]!.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('33.3');
-      expect(rows[0]!.get('[data-testid="sp-final"]').text()).toBe('Final 8');
-      expect(rows[0]!.get('[data-testid="sp-planned"]').text()).toBe('Planned 5');
+      expect(rows[0]!.get('[data-testid="sp-final"] dd').text()).toBe('8');
+      expect(rows[0]!.get('[data-testid="sp-final"] dt').text()).toBe('Final');
+      expect(rows[0]!.get('[data-testid="sp-planned"] dd').text()).toBe('5');
+      expect(rows[0]!.get('[data-testid="sp-planned"] dt').text()).toBe('Planned');
       expect(rows[0]!.get('a[target="_blank"]').attributes('href')).toContain('MASIN-10');
       expect(rows[0]!.find('.badge--indeterminate').exists()).toBe(true);
       // a story without subtasks says so, and its story points are "Not estimated", never 0

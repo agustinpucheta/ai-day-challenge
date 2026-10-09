@@ -37,18 +37,26 @@ const busy = computed(() => state.value.kind === 'loading');
 
 <template>
   <section class="page" aria-labelledby="issues-title" :aria-busy="busy">
-    <h1 id="issues-title">Issues</h1>
+    <header class="page-header">
+      <h1 id="issues-title">Issues</h1>
+    </header>
 
     <IssueSearchForm :initial-query="query" :busy="busy" @search="onSearch" />
 
     <div class="stack" aria-live="polite">
       <p v-if="queryError" class="alert alert--error" role="alert">{{ queryError }}</p>
 
-      <p v-else-if="state.kind === 'idle'" class="empty-state">
-        Search by text or by issue key (for example MASIN-123).
-      </p>
+      <div v-else-if="state.kind === 'idle'" class="empty-state empty-state--line">
+        <span class="empty-state__line" aria-hidden="true"></span>
+        <p>Search by text or by issue key (for example MASIN-123).</p>
+      </div>
 
-      <p v-else-if="state.kind === 'loading'" class="muted">Searching Jira…</p>
+      <div v-else-if="state.kind === 'loading'" class="stack">
+        <p class="muted">Searching Jira…</p>
+        <div class="skeleton-rows" aria-hidden="true">
+          <span v-for="n in 5" :key="n" class="skeleton skeleton--row"></span>
+        </div>
+      </div>
 
       <IssueErrorState
         v-else-if="state.kind === 'error'"
@@ -57,30 +65,33 @@ const busy = computed(() => state.value.kind === 'loading');
       />
 
       <template v-else>
-        <p v-if="state.items.length === 0" class="empty-state">
-          No issues found for “{{ state.query }}”.
-        </p>
-        <template v-else>
-          <IssueTable
-            :issues="state.items"
-            caption="Search results"
-            show-type
-            actions-label="Tracking"
-          >
-            <template #actions="{ issue }">
-              <TrackToggle :issue-key="issue.key" />
-            </template>
-          </IssueTable>
-          <p class="hint">{{ state.items.length }} loaded</p>
-        </template>
+        <div v-if="state.items.length === 0" class="empty-state empty-state--line">
+          <span class="empty-state__line" aria-hidden="true"></span>
+          <p>No issues found for “{{ state.query }}”.</p>
+        </div>
+        <IssueTable
+          v-else
+          :issues="state.items"
+          caption="Search results"
+          show-type
+          actions-label="Tracking"
+        >
+          <template #actions="{ issue }">
+            <TrackToggle :issue-key="issue.key" />
+          </template>
+        </IssueTable>
 
         <IssueErrorState
           v-if="state.loadMoreError"
           :error="state.loadMoreError"
           @retry="issues.loadMore()"
         />
-        <div v-else-if="state.nextPageToken">
+
+        <div v-if="state.items.length > 0" class="results-bar">
+          <p class="results-bar__count">{{ state.items.length }} loaded</p>
+          <LastFetched :fetched-at="state.fetchedAt" />
           <button
+            v-if="state.nextPageToken && !state.loadMoreError"
             type="button"
             class="button"
             :disabled="state.loadingMore"
@@ -89,8 +100,7 @@ const busy = computed(() => state.value.kind === 'loading');
             {{ state.loadingMore ? 'Loading…' : 'Load more' }}
           </button>
         </div>
-
-        <LastFetched :fetched-at="state.fetchedAt" />
+        <LastFetched v-else :fetched-at="state.fetchedAt" />
       </template>
     </div>
   </section>

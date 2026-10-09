@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { progress } from '@/test/fixtures';
-import { MAX_STATIONS, lineTone, stationPlan } from './progress';
+import { MAX_STATIONS, lineTone, stationPlan, statusStation, toneAt } from './progress';
 
 const drawn = (runs: ReturnType<typeof stationPlan>) => runs.reduce((n, r) => n + r.stations, 0);
 
@@ -74,5 +74,37 @@ describe('lineTone', () => {
   it('spreads different keys over more than one ink', () => {
     const tones = new Set(Array.from({ length: 20 }, (_, i) => lineTone(`MASIN-${i}`)));
     expect(tones.size).toBeGreaterThan(1);
+  });
+});
+
+describe('toneAt', () => {
+  it('cycles the four inks by position so adjacent items always differ', () => {
+    const tones = Array.from({ length: 9 }, (_, i) => toneAt(i));
+
+    expect(tones).toEqual([0, 1, 2, 3, 0, 1, 2, 3, 0]);
+    tones.slice(1).forEach((tone, i) => expect(tone).not.toBe(tones[i]));
+    expect(toneAt(-1)).toBe(3);
+  });
+});
+
+describe('statusStation', () => {
+  const status = (
+    categoryKey: string,
+    flags: { isCancelled?: boolean; isAvailable?: boolean } = {},
+  ) =>
+    ({ name: 'x', categoryKey, isCancelled: false, isAvailable: false, ...flags }) as Parameters<
+      typeof statusStation
+    >[0];
+
+  it.each([
+    ['done', {}, 'done'],
+    ['indeterminate', {}, 'inProgress'],
+    ['new', {}, 'pending'],
+    ['unknown', {}, 'unknown'],
+    ['done', { isCancelled: true }, 'cancelled'],
+    ['new', { isAvailable: true }, 'available'],
+    ['done', { isCancelled: true, isAvailable: true }, 'cancelled'],
+  ])('maps %s %j to the %s station', (category, flags, kind) => {
+    expect(statusStation(status(category, flags))).toBe(kind);
   });
 });

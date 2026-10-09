@@ -152,6 +152,9 @@ describe('My tracking dashboard', () => {
       expect(first!.get('.line-progress__percent').text()).toBe('33.3%');
       expect(second!.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('100');
       expect(second!.get('.line-progress__percent').text()).toBe('100%');
+      // the ink follows the position in the list, so neighbours never share one
+      expect(first!.get('.line-progress').attributes('data-tone')).toBe('0');
+      expect(second!.get('.line-progress').attributes('data-tone')).toBe('1');
       expect(first!.text()).toContain('7 of 12 done · 3 in progress · 2 pending · 1 cancelled');
     });
 
@@ -181,7 +184,7 @@ describe('My tracking dashboard', () => {
       expect(external.attributes('href')).toBe('https://acme.atlassian.net/browse/MASIN-1');
       expect(external.attributes('rel')).toBe('noopener noreferrer');
       expect(first.get('[data-testid="sp-planned"]').text()).toContain('3');
-      expect(first.get('[data-testid="sp-final"]').text()).toBe('Final 5');
+      expect(first.get('[data-testid="sp-final"] dd').text()).toBe('5');
       // null final story points are "Not estimated", never 0
       const second = card(wrapper, 'MASIN-2');
       expect(second.get('[data-testid="sp-final"]').text()).toContain('Not estimated');

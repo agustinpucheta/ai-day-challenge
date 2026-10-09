@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { IssueStatus } from '@/api/client';
+import { statusStation } from '@/issues/progress';
+import StationMark from './StationMark.vue';
 
-const props = defineProps<{ status: Readonly<IssueStatus> }>();
+const props = defineProps<{
+  status: Readonly<IssueStatus>;
+  /** Puts the station form of the state before the name, as in a line, so it never rides on hue. */
+  mark?: boolean;
+}>();
 
 /**
  * Precedence: cancelled > available > category. Cancelled is its own state (it is "done" in
@@ -22,5 +28,7 @@ const label = computed(() => {
 </script>
 
 <template>
-  <span :class="['badge', `badge--${variant}`]" :data-status="variant">{{ label }}</span>
+  <span :class="['badge', `badge--${variant}`, { 'badge--marked': mark }]" :data-status="variant">
+    <StationMark v-if="mark" :kind="statusStation(status)" />{{ label }}
+  </span>
 </template>
