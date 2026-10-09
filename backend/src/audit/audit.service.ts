@@ -8,7 +8,9 @@ export type AuditEventType =
   | 'jira_connected'
   | 'jira_token_refreshed'
   | 'jira_reauth_required'
-  | 'jira_disconnected';
+  | 'jira_disconnected'
+  | 'tracked_issue_added'
+  | 'tracked_issue_removed';
 
 /** Only scalar, non-sensitive metadata is accepted. Never pass passwords, emails, tokens or cookies. */
 export type AuditMetadata = Record<string, string | number | boolean>;
@@ -20,6 +22,8 @@ export interface AuditEventInput {
   /** Must reference an existing connection; for deleted ones put the id in metadata. */
   connectionId?: string | null;
   errorCode?: string;
+  /** Issue key the event is about (not sensitive). */
+  targetIssueKey?: string;
   metadata?: AuditMetadata;
 }
 
@@ -39,6 +43,7 @@ export class AuditService {
           userId: event.userId ?? null,
           connectionId: event.connectionId ?? null,
           errorCode: event.errorCode ?? null,
+          targetIssueKey: event.targetIssueKey ?? null,
           ...(event.metadata ? { metadata: event.metadata } : {}),
         },
       });

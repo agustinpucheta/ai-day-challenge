@@ -7,5 +7,6 @@ import { DashboardService } from './dashboard.service';
   imports: [JiraModule],
   controllers: [JiraIssuesController, DashboardIssuesController],
   providers: [DashboardService],
+  exports: [DashboardService],
 })
 export class DashboardModule {}

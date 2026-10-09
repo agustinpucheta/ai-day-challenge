@@ -47,10 +47,13 @@ Validar cualquier JSON en runtime; no aceptar una bolsa arbitraria de preferenci
 
 ## `tracked_issues`
 
-- `id`, `user_id` FK, `jira_connection_id` FK, `cloud_id`, `issue_key`, `issue_id` si se conoce.
-- `display_order`, flags de visualización opcionales, `created_at`.
-- Unique `(user_id, jira_connection_id, issue_key)`.
-- Verificar que issue/site pertenecen a una conexión de ese usuario antes de insertar.
+Implementada en la fase 6 (F6.1). Con una sola identidad Jira por instancia (D-023) no hay `jira_connection_id`: la tabla guarda el sitio configurado.
+
+- `id` (uuid), `user_id` FK a `users` con `ON DELETE CASCADE`, `issue_key` (en mayúsculas), `jira_site_url` (origen normalizado de `JIRA_URL`; evita mezclar listas si cambia el sitio), `display_order` (entero, orden de la lista), `created_at`.
+- Unique `(user_id, jira_site_url, issue_key)` e índice `(user_id, display_order)`.
+- Solo se guarda la clave: título, estado y avance se leen siempre de Jira (fuente de verdad). No hay copia de issues.
+- El backend verifica que el issue sea legible con las credenciales configuradas antes de insertar. La lista es por usuario local (el usuario sale solo de la sesión); la misma clave puede estar en las listas de varios usuarios.
+- Tope por usuario y sitio: 50 entradas (constante `TRACKING_CONFIG.maxPerUser`). La inserción toma un lock asesor por usuario, de modo que el chequeo del tope y el alta son atómicos y la restricción unique queda como última barrera.
 
 ## `saved_views` (opcional en MVP si el tiempo lo permite)
 

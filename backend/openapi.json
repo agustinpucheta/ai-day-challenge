@@ -48,7 +48,7 @@
             }
           },
           "409": {
-            "description": "EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured)",
+            "description": "EMAIL_ALREADY_REGISTERED, JIRA_NOT_CONNECTED (Jira credentials not configured) or TRACKING_LIMIT_REACHED",
             "content": {
               "application/json": {
                 "schema": {
@@ -384,7 +384,7 @@
             }
           },
           "409": {
-            "description": "EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured)",
+            "description": "EMAIL_ALREADY_REGISTERED, JIRA_NOT_CONNECTED (Jira credentials not configured) or TRACKING_LIMIT_REACHED",
             "content": {
               "application/json": {
                 "schema": {
@@ -505,7 +505,7 @@
             }
           },
           "409": {
-            "description": "EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured)",
+            "description": "EMAIL_ALREADY_REGISTERED, JIRA_NOT_CONNECTED (Jira credentials not configured) or TRACKING_LIMIT_REACHED",
             "content": {
               "application/json": {
                 "schema": {
@@ -612,7 +612,7 @@
             }
           },
           "409": {
-            "description": "EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured)",
+            "description": "EMAIL_ALREADY_REGISTERED, JIRA_NOT_CONNECTED (Jira credentials not configured) or TRACKING_LIMIT_REACHED",
             "content": {
               "application/json": {
                 "schema": {
@@ -660,6 +660,248 @@
         "summary": "Issue detail with subtasks and story points (read-only)",
         "tags": [
           "dashboard"
+        ]
+      }
+    },
+    "/api/v1/users/me/tracked-issues": {
+      "post": {
+        "operationId": "TrackingController_add",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTrackedIssueDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Already tracked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackedIssueEntryDto"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Newly tracked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackedIssueEntryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_ERROR: invalid or non-whitelisted input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN_ORIGIN (CSRF origin check) or REGISTRATION_DISABLED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ISSUE_NOT_FOUND_OR_INACCESSIBLE: the issue does not exist or is not visible (indistinguishable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "EMAIL_ALREADY_REGISTERED, JIRA_NOT_CONNECTED (Jira credentials not configured) or TRACKING_LIMIT_REACHED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "424": {
+            "description": "JIRA_REAUTH_REQUIRED (Jira rejected the API token) or JIRA_FORBIDDEN (account lacks permission)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED (local throttle) or JIRA_RATE_LIMITED (Jira; see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DATABASE_UNAVAILABLE or JIRA_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jd.sid": []
+          }
+        ],
+        "summary": "Follow an issue (verified readable in Jira first; idempotent)",
+        "tags": [
+          "tracking"
+        ]
+      },
+      "get": {
+        "operationId": "TrackingController_list",
+        "parameters": [
+          {
+            "name": "refresh",
+            "required": false,
+            "in": "query",
+            "description": "true skips the in-memory cache and reads Jira again.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackedIssuesResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_ERROR: invalid or non-whitelisted input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jd.sid": []
+          }
+        ],
+        "summary": "My followed issues with progress; one failing issue never fails the list",
+        "tags": [
+          "tracking"
+        ]
+      }
+    },
+    "/api/v1/users/me/tracked-issues/{id}": {
+      "delete": {
+        "operationId": "TrackingController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed, or nothing to remove."
+          },
+          "400": {
+            "description": "VALIDATION_ERROR: invalid or non-whitelisted input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN_ORIGIN (CSRF origin check) or REGISTRATION_DISABLED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jd.sid": []
+          }
+        ],
+        "summary": "Stop following an issue (idempotent; only my own entries)",
+        "tags": [
+          "tracking"
         ]
       }
     },
@@ -824,6 +1066,7 @@
               "ISSUE_NOT_FOUND_OR_INACCESSIBLE",
               "JIRA_RATE_LIMITED",
               "JIRA_UNAVAILABLE",
+              "TRACKING_LIMIT_REACHED",
               "INTERNAL_ERROR"
             ],
             "example": "UNAUTHENTICATED"
@@ -1361,6 +1604,195 @@
           "issue",
           "subtasks",
           "progress",
+          "metadata"
+        ]
+      },
+      "AddTrackedIssueDto": {
+        "type": "object",
+        "properties": {
+          "issueKey": {
+            "type": "string",
+            "example": "MASIN-123",
+            "description": "Jira issue key. Trimmed and uppercased before validation."
+          }
+        },
+        "required": [
+          "issueKey"
+        ]
+      },
+      "TrackedIssueEntryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Id of the tracking entry (not the Jira issue id)."
+          },
+          "issueKey": {
+            "type": "string",
+            "example": "MASIN-123"
+          },
+          "addedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "issueKey",
+          "addedAt"
+        ]
+      },
+      "TrackedIssueSummaryDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "MASIN-123"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "issueType": {
+            "$ref": "#/components/schemas/IssueTypeDto"
+          },
+          "status": {
+            "$ref": "#/components/schemas/IssueStatusDto"
+          },
+          "url": {
+            "type": "string"
+          },
+          "storyPoints": {
+            "$ref": "#/components/schemas/StoryPointsDto"
+          }
+        },
+        "required": [
+          "key",
+          "summary",
+          "issueType",
+          "status",
+          "url",
+          "storyPoints"
+        ]
+      },
+      "TrackedIssueErrorDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "ISSUE_NOT_FOUND_OR_INACCESSIBLE",
+            "description": "Normalized code (same set as the endpoint errors)."
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "TrackedIssueItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Id of the tracking entry (not the Jira issue id)."
+          },
+          "issueKey": {
+            "type": "string",
+            "example": "MASIN-123"
+          },
+          "addedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "error"
+            ]
+          },
+          "issue": {
+            "description": "Only when status is ok.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TrackedIssueSummaryDto"
+              }
+            ]
+          },
+          "progress": {
+            "description": "Only when status is ok. Never present (not even zeros) for an errored item.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProgressDto"
+              }
+            ]
+          },
+          "childrenCount": {
+            "type": "number",
+            "description": "Direct children count; epics with status ok only."
+          },
+          "warnings": {
+            "description": "Only when status is ok.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When Jira was read for this item. A cached item keeps its original read time; for an error it is the attempt time."
+          },
+          "error": {
+            "description": "Only when status is error.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TrackedIssueErrorDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "issueKey",
+          "addedAt",
+          "status",
+          "fetchedAt"
+        ]
+      },
+      "TrackedIssuesMetadataDto": {
+        "type": "object",
+        "properties": {
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this list was assembled."
+          }
+        },
+        "required": [
+          "fetchedAt"
+        ]
+      },
+      "TrackedIssuesResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "Ordered by display order.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrackedIssueItemDto"
+            }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/TrackedIssuesMetadataDto"
+          }
+        },
+        "required": [
+          "items",
           "metadata"
         ]
       },

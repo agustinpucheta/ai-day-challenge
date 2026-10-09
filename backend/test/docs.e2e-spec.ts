@@ -40,6 +40,8 @@ describe('OpenAPI docs (e2e)', () => {
         '/api/v1/jira/connection/verify',
         '/api/v1/jira/issues/search',
         '/api/v1/dashboard/issues/{issueKey}',
+        '/api/v1/users/me/tracked-issues',
+        '/api/v1/users/me/tracked-issues/{id}',
       ]),
     );
     expect(res.body.components.securitySchemes['jd.sid']).toMatchObject({

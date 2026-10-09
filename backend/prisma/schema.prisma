@@ -1,5 +1,5 @@
 // Local identity, server sessions, preferences, audit and Jira OAuth connections (Phase 2).
-// Tracked issues arrive in Phase 6.
+// Tracked issues (Phase 6).
 // All timestamps are stored as timestamptz (UTC); DB names are snake_case.
 
 generator client {
@@ -36,6 +36,7 @@ model User {
   auditEvents        AuditEvent[]
   jiraConnections    JiraConnection[]
   oauthStates        OAuthState[]
+  trackedIssues      TrackedIssue[]
 
   @@map("users")
 }
@@ -139,6 +140,24 @@ model JiraConnection {
   @@unique([userId, cloudId])
   @@index([userId])
   @@map("jira_connections")
+}
+
+// Issues a user follows. Only the key is stored: Jira stays the source of truth for everything
+// else. `jiraSiteUrl` (normalized origin of the configured Jira site) keeps lists from mixing
+// if the site changes (D-023).
+model TrackedIssue {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  issueKey     String   @map("issue_key")
+  jiraSiteUrl  String   @map("jira_site_url")
+  displayOrder Int      @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jiraSiteUrl, issueKey])
+  @@index([userId, displayOrder])
+  @@map("tracked_issues")
 }
 
 // Short-lived, single-use OAuth state bound to the session. Only the SHA-256 hash is stored.

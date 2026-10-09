@@ -11,6 +11,7 @@ import { JiraOAuthModule } from './jira/jira-oauth.module';
 import { JiraModule } from './jira/jira.module';
 import { PreferencesModule } from './preferences/preferences.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { TrackingModule } from './tracking/tracking.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -42,6 +43,7 @@ import { UsersModule } from './users/users.module';
     JiraOAuthModule,
     JiraModule,
     DashboardModule,
+    TrackingModule,
     HealthModule,
   ],
 })
