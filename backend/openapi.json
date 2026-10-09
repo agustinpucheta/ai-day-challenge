@@ -1,0 +1,603 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/auth/register": {
+      "post": {
+        "description": "Only when LOCAL_REGISTRATION_ENABLED=true. Does not log in.",
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_ERROR: invalid or non-whitelisted input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN_ORIGIN (CSRF origin check) or REGISTRATION_DISABLED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "EMAIL_ALREADY_REGISTERED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Register a local account",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "Creates a server-side session and sets the jd.sid cookie.",
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_ERROR: invalid or non-whitelisted input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN_ORIGIN (CSRF origin check) or REGISTRATION_DISABLED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Log in with email and password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Logged out"
+          },
+          "403": {
+            "description": "FORBIDDEN_ORIGIN (CSRF origin check) or REGISTRATION_DISABLED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Destroy the current session and clear the cookie (idempotent)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jd.sid": []
+          }
+        ],
+        "summary": "Current user and Jira connection status",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/users/me/preferences": {
+      "get": {
+        "operationId": "PreferencesController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferencesResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jd.sid": []
+          }
+        ],
+        "summary": "Get my preferences (defaults are created on first access)",
+        "tags": [
+          "preferences"
+        ]
+      },
+      "patch": {
+        "operationId": "PreferencesController_update",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePreferencesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferencesResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_ERROR: invalid or non-whitelisted input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN_ORIGIN (CSRF origin check) or REGISTRATION_DISABLED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jd.sid": []
+          }
+        ],
+        "summary": "Update my preferences (only whitelisted fields)",
+        "tags": [
+          "preferences"
+        ]
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponseDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DATABASE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Application and database health (no configuration details)",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Jira Dashboard API",
+    "description": "Local REST API. Authentication uses a server-side session cookie. State-changing requests must send an allowed Origin header. Errors use the normalized { code, message } body.",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "jd.sid": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "jd.sid"
+      }
+    },
+    "schemas": {
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 320,
+            "example": "ana@example.com",
+            "description": "Trimmed and lowercased before storage"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 12,
+            "maxLength": 256
+          },
+          "displayName": {
+            "type": "string",
+            "maxLength": 100,
+            "example": "Ana"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "JiraStatusDto": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean",
+            "description": "Placeholder until Phase 2 (Jira OAuth)",
+            "example": false
+          }
+        },
+        "required": [
+          "connected"
+        ]
+      },
+      "MeResponseDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "example": "ana@example.com"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true,
+            "example": "Ana"
+          },
+          "jira": {
+            "$ref": "#/components/schemas/JiraStatusDto"
+          }
+        },
+        "required": [
+          "userId",
+          "email",
+          "displayName",
+          "jira"
+        ]
+      },
+      "ValidationDetailDto": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "example": "password"
+          },
+          "constraints": {
+            "example": [
+              "password must be longer than or equal to 12 characters"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "field",
+          "constraints"
+        ]
+      },
+      "ErrorResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "UNAUTHENTICATED",
+              "INVALID_CREDENTIALS",
+              "VALIDATION_ERROR",
+              "RATE_LIMITED",
+              "FORBIDDEN",
+              "FORBIDDEN_ORIGIN",
+              "REGISTRATION_DISABLED",
+              "EMAIL_ALREADY_REGISTERED",
+              "NOT_FOUND",
+              "DATABASE_UNAVAILABLE",
+              "INTERNAL_ERROR"
+            ],
+            "example": "UNAUTHENTICATED"
+          },
+          "message": {
+            "type": "string",
+            "example": "Authentication required"
+          },
+          "details": {
+            "description": "Present only for VALIDATION_ERROR",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationDetailDto"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "maxLength": 320,
+            "example": "ana@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "PreferencesResponseDto": {
+        "type": "object",
+        "properties": {
+          "weekStartsOn": {
+            "type": "string",
+            "enum": [
+              "monday",
+              "sunday"
+            ],
+            "example": "monday"
+          },
+          "timezone": {
+            "type": "string",
+            "nullable": true,
+            "example": "America/Argentina/Buenos_Aires"
+          },
+          "showWeeklySp": {
+            "type": "boolean"
+          },
+          "showSubtasks": {
+            "type": "boolean"
+          },
+          "showDependencies": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "weekStartsOn",
+          "timezone",
+          "showWeeklySp",
+          "showSubtasks",
+          "showDependencies",
+          "updatedAt"
+        ]
+      },
+      "UpdatePreferencesDto": {
+        "type": "object",
+        "properties": {
+          "weekStartsOn": {
+            "type": "string",
+            "enum": [
+              "monday",
+              "sunday"
+            ]
+          },
+          "timezone": {
+            "type": "string",
+            "nullable": true,
+            "description": "IANA time zone; null clears it",
+            "example": "America/Argentina/Buenos_Aires"
+          },
+          "showWeeklySp": {
+            "type": "boolean"
+          },
+          "showSubtasks": {
+            "type": "boolean"
+          },
+          "showDependencies": {
+            "type": "boolean"
+          }
+        }
+      },
+      "HealthResponseDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "up"
+            ]
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "status",
+          "database",
+          "checkedAt"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,104 @@
+// Phase 1 schema: local identity, server sessions, preferences and audit.
+// Jira connections and tracked issues arrive in Phases 2 and 6.
+// All timestamps are stored as timestamptz (UTC); DB names are snake_case.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "cjs"
+  // Compiled output is plain CommonJS .js, so generated imports must not keep ".ts".
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum WeekStartDay {
+  monday
+  sunday
+
+  @@map("week_start_day")
+}
+
+model User {
+  id              String    @id @default(uuid()) @db.Uuid
+  emailNormalized String    @unique @map("email_normalized")
+  displayName     String?   @map("display_name")
+  // Nullable so future external-only identities (Microsoft) can exist.
+  passwordHash    String?   @map("password_hash")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  disabledAt      DateTime? @map("disabled_at") @db.Timestamptz(3)
+
+  externalIdentities ExternalIdentity[]
+  preferences        UserPreferences?
+  auditEvents        AuditEvent[]
+
+  @@map("users")
+}
+
+// Designed for the future Microsoft sign-in (Delivery 2). Never auto-link by email.
+model ExternalIdentity {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  provider  String
+  issuer    String
+  subject   String
+  tenantId  String?  @map("tenant_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, issuer, subject])
+  @@index([userId])
+  @@map("external_identities")
+}
+
+// Table owned by connect-pg-simple (express-session store). Its shape must match
+// the library's expected schema; the store runs with createTableIfMissing=false.
+model UserSession {
+  sid    String   @id @db.VarChar
+  sess   Json     @db.Json
+  expire DateTime @db.Timestamp(6)
+
+  @@index([expire], map: "IDX_user_sessions_expire")
+  @@map("user_sessions")
+}
+
+model UserPreferences {
+  id               String       @id @default(uuid()) @db.Uuid
+  userId           String       @unique @map("user_id") @db.Uuid
+  weekStartsOn     WeekStartDay @default(monday) @map("week_starts_on")
+  timezone         String?
+  showWeeklySp     Boolean      @default(true) @map("show_weekly_sp")
+  showSubtasks     Boolean      @default(true) @map("show_subtasks")
+  showDependencies Boolean      @default(true) @map("show_dependencies")
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// Never store passwords, hashes, tokens, OAuth codes, cookies or raw request bodies.
+model AuditEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String?  @map("user_id") @db.Uuid
+  // FK to jira_connections is added in Phase 2.
+  connectionId   String?  @map("connection_id") @db.Uuid
+  eventType      String   @map("event_type")
+  targetIssueKey String?  @map("target_issue_key")
+  metadata       Json?    @db.JsonB
+  success        Boolean
+  errorCode      String?  @map("error_code")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([eventType, createdAt])
+  @@map("audit_events")
+}

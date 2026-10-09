@@ -21,7 +21,7 @@ Implementar un dashboard personal de Jira Cloud, primero en local, con Vue 3 + V
 
 ## Stack preferido
 
-- Monorepo con pnpm workspaces.
+- Dos proyectos independientes, `backend/` y `frontend/`, cada uno con su `package.json`, lockfile y scripts, más un `package.json` raíz que solo orquesta (pnpm 10, sin workspaces; D-016). Los tipos del frontend se generan desde `backend/openapi.json`.
 - Frontend: Vue 3, Vite, TypeScript, Vue Router. Usar Pinia solo para estado cliente que realmente lo necesite.
 - Backend: NestJS, TypeScript, REST JSON, validación de DTOs.
 - Datos: PostgreSQL y Prisma; migraciones versionadas.

@@ -71,3 +71,23 @@
 **Fecha:** 2026-10-09.
 
 **Decisión:** el trabajo se realiza en la rama `feat/jira-dashboard-mvp`; nada se integra a `main` hasta verificar las fases.
+
+## D-016 — Proyectos independientes `backend/` y `frontend/` (sin workspace)
+
+**Fecha:** 2026-10-09. **Reemplaza:** la parte "Monorepo pnpm workspaces" de D-002 y la estructura `apps/` + `packages/contracts` de `docs/ARCHITECTURE.md`.
+
+**Decisión:** el repositorio contiene dos proyectos independientes, `backend/` (NestJS) y `frontend/` (Vue), cada uno con su propio `package.json`, lockfile, dependencias, scripts, `tsconfig` y lint. No hay `pnpm-workspace.yaml`. El `package.json` de la raíz (`jira-dashboard`, privado) es solo un orquestador: no tiene dependencias de aplicación (únicamente `concurrently` como devDependency) y expone `dev`, `dev:backend`, `dev:frontend`, `install:all`, `lint`, `typecheck`, `test` (con variantes `*:backend` / `*:frontend`), `db:up` y `db:down`. Se usa pnpm 10 (`packageManager` fijado en cada `package.json`).
+
+**Consecuencia / tradeoff:** los contratos de la API ya no se comparten mediante un paquete (`packages/contracts`), por lo que backend y frontend podrían divergir en tipos. **Mitigación (implementada en la Fase 1):** el backend documenta todos los endpoints con `@nestjs/swagger` (DTOs de request/response y el cuerpo de error normalizado `{ code, message }`). Swagger UI se sirve en `/api/docs` y el JSON en `/api/docs-json` cuando `NODE_ENV` no es `production` o `SWAGGER_ENABLED=true`. `pnpm --dir backend openapi:export` escribe `backend/openapi.json` (versionado, sin conexión a la base) y el frontend genera sus tipos desde ese archivo con openapi-typescript. Mientras Swagger está habilitado, el chequeo de Origin también acepta el origen de la propia API (`API_ORIGIN`, por defecto `http://localhost:<API_PORT>`) para que funcione "Try it out"; los orígenes ajenos se siguen rechazando.
+
+## D-017 — Herramientas del backend (Fase 1)
+
+**Fecha:** 2026-10-09.
+
+**Decisión:**
+- **Tests:** Jest 30 + ts-jest (runner establecido por NestJS). Unitarios en `backend/src/**/*.spec.ts`; e2e con supertest en `backend/test/*.e2e-spec.ts` contra el PostgreSQL local, usando una base separada `<POSTGRES_DB>_test` (o `TEST_DATABASE_URL`) que el setup crea y migra con `prisma migrate deploy`.
+- **TypeScript 5.9** (no 7.x): `ts-jest` y `typescript-eslint` aún no soportan TypeScript 7.
+- **Prisma 7.10** (estable; la etiqueta `latest` de npm apunta a una RC de Prisma 8). Configuración en `backend/prisma.config.ts`; la URL ya no va en `schema.prisma`. Cliente generado con el generador `prisma-client` en `backend/src/generated/prisma` (ignorado por Git, se genera en `postinstall`), `moduleFormat = "cjs"` e `importFileExtension = "js"` para el build CommonJS de Nest; conexión mediante el driver adapter `@prisma/adapter-pg`.
+- **Sesiones:** `express-session` + `connect-pg-simple` sobre la tabla `user_sessions`, creada por la migración de Prisma (`createTableIfMissing: false`). Cookie `jd.sid`, `HttpOnly`, `SameSite=Lax`, `Secure` solo con `NODE_ENV=production`, duración 8 h.
+- **Variables de entorno:** el backend lee el `.env` de la raíz y lo valida con zod al arrancar (falla rápido sin mostrar valores). `SESSION_SECRET` requiere al menos 32 caracteres.
+- **CSRF:** las solicitudes `POST`/`PUT`/`PATCH`/`DELETE` deben traer `Origin` (o `Referer`) igual a `WEB_ORIGIN`; si falta, se rechazan (`403 FORBIDDEN_ORIGIN`).

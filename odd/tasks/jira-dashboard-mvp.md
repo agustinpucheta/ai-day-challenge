@@ -40,13 +40,20 @@ MVP phases 0–8 from `docs/IMPLEMENTATION_PLAN.md`. Out of scope: Microsoft SSO
 
 ## Checklist
 
-- [ ] **F0** — Phase 0: discovery, repository and Jira contract. Gate: no field ID, status name or issue type hardcoded without evidence.
+- [x] **F0** — Phase 0: discovery, repository and Jira contract. Gate: no field ID, status name or issue type hardcoded without evidence.
   - [x] F0.1 Read-only Jira discovery done (`docs/JIRA_DISCOVERY.md`).
   - [x] F0.2 Kit moved to repository root (D-011).
   - [x] F0.3 `.env` / `.env.example` created (no secrets versioned).
   - [x] F0.4 Docs updated (JIRA_DISCOVERY, DECISIONS D-011..D-015, PRODUCT_SPEC §4, PIPELINES D/E, IMPLEMENTATION_PLAN).
-  - [ ] F0.5 Work-unit commit (pending user approval).
+  - [x] F0.5 Work-unit commit `34487ba`, pushed to `origin/feat/jira-dashboard-mvp`. Review: passive docs-only, no review needed.
 - [ ] **F1** — Foundation and local login. Gate: two local users cannot read/modify each other's preferences; session/authorization tests pass.
+  - [x] F1.1 D-016 recorded: independent `frontend/` and `backend/` projects (no workspace) + root orchestrator `package.json` (dev:frontend, dev:backend, dev both). ARCHITECTURE structure updated.
+  - [x] F1.2 Root: orchestrator scripts, `infrastructure/docker-compose.yml` (PostgreSQL from `.env`).
+  - [x] F1.3 Backend: NestJS strict TS, lint/format/typecheck/test, Prisma schema + initial migration (users, external_identities, sessions, user_preferences, audit_events).
+  - [x] F1.4 Backend: register/login/logout/me, Argon2id, PostgreSQL-backed server session, session guard, global DTO validation, login rate limit, GET/PATCH own preferences; isolation tests.
+  - [x] F1.4b Swagger/OpenAPI at /api/docs + openapi:export (user request, pulled from Phase 3).
+  - [x] F1.5 Frontend: Vue 3 + Vite + TS + Router, lint/format/typecheck/test, base layout, login/register views, auth state, Jira connection placeholder states.
+  - [ ] F1.6 Phase close: lint, typecheck, tests in both projects; commit after approval.
 - [ ] **F2** — Individual Jira Cloud OAuth. Gate: user B cannot use user A's connection or inspect tokens; tests cover invalid callback, state replay, expiry, refresh rotation, revocation.
 - [ ] **F3** — Jira Gateway and search/read. Gate: user sees a permitted real issue; inaccessible issues leak nothing; errors never become empty lists/0%.
 - [ ] **F4** — Metrics, subtasks and weekly SP. Gate: tests for story without subtasks, empty epic, null fields, estimate changes, in/out of period, reopen, pagination, duplicates.
@@ -65,14 +72,21 @@ MVP phases 0–8 from `docs/IMPLEMENTATION_PLAN.md`. Out of scope: Microsoft SSO
 - Changelog carries status/SP from/to; automation writes `from == to` entries that must be filtered; MCP changelog appears capped at 100 entries.
 - `Blocks` link type id 10000: outward on X means X blocks Y; cross-epic and cross-project blockers exist; transition IDs depend on source status.
 
+### F1 backend evidence (2026-10-09)
+
+- db:up healthy; migration 20261009153725_init applied; backend lint 0 problems; typecheck ok; unit 35/35 (parent re-ran: 35/35); e2e 17/17 on jira_dashboard_test; health 200, me 401, foreign Origin 403.
+- Stack: NestJS 11, TS 5.9.3, Prisma 7.10.0 + adapter-pg, Jest 30, express-session + connect-pg-simple.
+- .env.example could not be updated (user permission deny on .env*); pending manual: LOCAL_REGISTRATION_ENABLED, AUTH_RATE_LIMIT_PER_MINUTE, SESSION_SECRET >= 32 chars note.
+
 ### Route declaration
 
 - **F0 exploration:** delegated to one read-only explorer (trigger: more than 5 sequential MCP lookups).
 - **F0 docs:** delegated to one writer (trigger: 5 non-trivial files edited).
+- **F1 backend+infra:** delegated to one writer (trigger: many non-trivial files). Frontend: separate sequential writer.
 
 ## Next step
 
-Commit F0 after explicit user approval of the commit message, then start Phase 1 (F1).
+Start Phase 1 (F1): pnpm monorepo, Prisma, Docker Compose, local login.
 
 ## Open questions
 

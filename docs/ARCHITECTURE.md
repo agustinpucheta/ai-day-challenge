@@ -11,7 +11,7 @@
 
 ## 2. Stack
 
-- Monorepo: pnpm workspaces.
+- Repositorio: dos proyectos independientes (`backend/`, `frontend/`) con pnpm 10 y un `package.json` raíz solo orquestador; sin workspaces (D-016).
 - Web: Vue 3 + Vite + TypeScript + Vue Router. Añadir Pinia solo donde haga falta estado global.
 - API: NestJS + TypeScript, REST JSON.
 - DB: PostgreSQL en Docker Compose local.
@@ -20,28 +20,35 @@
 - Jira: OAuth 2.0 de Atlassian de tres partes (3LO), con una única aplicación OAuth del proyecto y autorizaciones individuales por usuario.
 - Validación: DTOs NestJS y esquemas runtime explícitos.
 
-## 3. Estructura sugerida del monorepo
+## 3. Estructura del repositorio
+
+Dos proyectos independientes, cada uno con su `package.json`, lockfile, dependencias, scripts, `tsconfig` y lint. No hay pnpm workspace (D-016).
 
 ```text
 jira-dashboard/
-├── apps/
-│   ├── web/                     # Vue 3 + Vite
-│   └── api/                     # NestJS
-├── packages/
-│   └── contracts/               # tipos y esquemas compartidos donde sea práctico
-├── prisma/
-│   ├── schema.prisma
-│   └── migrations/
+├── backend/                     # NestJS (proyecto independiente)
+│   ├── prisma/
+│   │   ├── schema.prisma
+│   │   └── migrations/          # migraciones versionadas
+│   ├── prisma.config.ts         # configuración de Prisma 7 (URL de la base)
+│   ├── src/                     # módulos NestJS; src/generated/ lo genera Prisma
+│   ├── test/                    # e2e (supertest) contra la base *_test
+│   └── package.json
+├── frontend/                    # Vue 3 + Vite (proyecto independiente)
+│   └── package.json
 ├── infrastructure/
-│   └── docker-compose.yml
+│   └── docker-compose.yml       # PostgreSQL 16 local
 ├── docs/
+├── odd/
 ├── .claude/
 │   ├── agents/
 │   └── skills/                  # solo skills validadas/activas
-├── .env.example
-├── pnpm-workspace.yaml
+├── .env.example                 # único .env de la raíz, leído por backend y Docker Compose
+├── package.json                 # orquestador: dev, lint, typecheck, test, db:up/db:down
 └── CLAUDE.md
 ```
+
+Los contratos HTTP no se comparten por paquete. Mitigación planificada para la Fase 3: el backend publica OpenAPI (`@nestjs/swagger`) y el frontend genera sus tipos desde ese documento.
 
 ## 4. Módulos NestJS
 

@@ -22,13 +22,41 @@ Construir un dashboard personal sobre Jira Cloud (`*.atlassian.net`) con Vue 3 +
 
 - Frontend: Vue 3, Vite, TypeScript.
 - Backend: NestJS, TypeScript.
-- Monorepo: pnpm workspaces.
+- Repositorio: proyectos independientes `backend/` y `frontend/` con pnpm 10, sin workspaces (D-016).
 - Persistencia: PostgreSQL local mediante Docker Compose; Prisma como ORM y migraciones.
 - Primera entrega: login local email/contraseña, OAuth individual de Atlassian, preferencias por usuario, dashboard de métricas, dependencias y transiciones autorizadas.
 - SSO de Microsoft: segunda entrega.
 - Despliegue en Railway: segunda entrega, después de validar el MVP local.
 - Claude Code subagents: herramientas de desarrollo y revisión. Los cálculos de métricas del producto son deterministas; no requieren un agente LLM en runtime.
 - MCP: útil para investigación durante el desarrollo; no se asume que el MCP local de Claude Code esté disponible para el backend ejecutándose.
+
+## Desarrollo local
+
+El repositorio tiene dos proyectos independientes, `backend/` y `frontend/`, y un `package.json` raíz que solo orquesta scripts (D-016).
+
+**Requisitos:** Node 22.12 o superior, pnpm 10 y Docker.
+
+1. Copiá `.env.example` a `.env` en la raíz y completá los valores. `SESSION_SECRET` debe tener al menos 32 caracteres aleatorios (por ejemplo, `openssl rand -base64 48`). El `.env` nunca se versiona.
+2. Instalá dependencias: `pnpm install:all`.
+3. Levantá PostgreSQL: `pnpm db:up` (espera a que el contenedor esté sano). Para detenerlo: `pnpm db:down`.
+4. Aplicá las migraciones: `pnpm --dir backend prisma:migrate` (desarrollo) o `pnpm --dir backend prisma:deploy` (solo aplicar las existentes).
+5. Iniciá la API: `pnpm dev:backend`. Queda en `http://localhost:3000/api/v1` (salud: `GET /api/v1/health`).
+6. Documentación de la API: Swagger UI en `http://localhost:3000/api/docs` y especificación JSON en `http://localhost:3000/api/docs-json` (deshabilitada en producción salvo `SWAGGER_ENABLED=true`). Para regenerar `backend/openapi.json`, que usa el frontend para generar tipos: `pnpm --dir backend openapi:export`.
+7. Iniciá la web: `pnpm dev:frontend` (o `pnpm dev` para levantar API y web juntas). Queda en `http://localhost:5173`. El servidor de Vite redirige `/api` a `http://localhost:3000` (proxy), así el navegador trabaja en un único origen, la cookie de sesión `HttpOnly` funciona sin CORS y el `Origin` enviado (`http://localhost:5173`) coincide con `WEB_ORIGIN`. Para usar otra dirección de la API: variable `VITE_API_PROXY_TARGET` al iniciar Vite.
+8. Después de cambiar la API: `pnpm --dir backend openapi:export` y luego `pnpm --dir frontend api:types`, que regenera `frontend/src/api/schema.d.ts` (versionado). Si el contrato cambió, `pnpm --dir frontend typecheck` señala los usos a corregir.
+
+**Calidad y pruebas (backend):**
+
+- `pnpm lint:backend`, `pnpm typecheck:backend`, `pnpm --dir backend format`.
+- `pnpm --dir backend test`: pruebas unitarias.
+- `pnpm --dir backend test:e2e`: pruebas e2e contra el PostgreSQL local (requiere `pnpm db:up`). Usan una base separada `<POSTGRES_DB>_test` (o `TEST_DATABASE_URL`) que se crea y migra automáticamente; nunca tocan la base de desarrollo.
+- `pnpm test:backend` ejecuta ambas. Los scripts agregados `pnpm lint`, `pnpm typecheck` y `pnpm test` incluyen también el frontend.
+
+**Calidad y pruebas (frontend):**
+
+- `pnpm lint:frontend`, `pnpm typecheck:frontend`, `pnpm --dir frontend format` / `format:check`.
+- `pnpm test:frontend`: pruebas unitarias y de componentes con Vitest y jsdom (no requieren la API ni la base).
+- `pnpm --dir frontend build`: chequeo de tipos y build de producción en `frontend/dist`.
 
 ## Contenido
 

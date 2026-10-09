@@ -1,0 +1,6 @@
+node_modules/
+dist/
+coverage/
+# Prisma client is generated on install (postinstall) and on demand.
+src/generated/
+*.tsbuildinfo

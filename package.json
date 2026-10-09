@@ -1,0 +1,31 @@
+{
+  "name": "jira-dashboard",
+  "private": true,
+  "description": "Root orchestrator for the independent backend/ and frontend/ projects. Holds no application dependencies.",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "install:backend": "pnpm --dir backend install",
+    "install:frontend": "pnpm --dir frontend install",
+    "install:all": "pnpm install && pnpm run install:backend && pnpm run install:frontend",
+    "dev:backend": "pnpm --dir backend dev",
+    "dev:frontend": "pnpm --dir frontend dev",
+    "dev": "concurrently --names backend,frontend --prefix-colors blue,green \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
+    "lint:backend": "pnpm --dir backend lint",
+    "lint:frontend": "pnpm --dir frontend lint",
+    "lint": "pnpm run lint:backend && pnpm run lint:frontend",
+    "typecheck:backend": "pnpm --dir backend typecheck",
+    "typecheck:frontend": "pnpm --dir frontend typecheck",
+    "typecheck": "pnpm run typecheck:backend && pnpm run typecheck:frontend",
+    "test:backend": "pnpm --dir backend test && pnpm --dir backend test:e2e",
+    "test:frontend": "pnpm --dir frontend test",
+    "test": "pnpm run test:backend && pnpm run test:frontend",
+    "db:up": "docker compose -f infrastructure/docker-compose.yml --env-file .env up -d --wait",
+    "db:down": "docker compose -f infrastructure/docker-compose.yml --env-file .env down"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.5"
+  }
+}
