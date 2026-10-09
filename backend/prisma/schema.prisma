@@ -1,5 +1,5 @@
-// Phase 1 schema: local identity, server sessions, preferences and audit.
-// Jira connections and tracked issues arrive in Phases 2 and 6.
+// Local identity, server sessions, preferences, audit and Jira OAuth connections (Phase 2).
+// Tracked issues arrive in Phase 6.
 // All timestamps are stored as timestamptz (UTC); DB names are snake_case.
 
 generator client {
@@ -34,11 +34,20 @@ model User {
   externalIdentities ExternalIdentity[]
   preferences        UserPreferences?
   auditEvents        AuditEvent[]
+  jiraConnections    JiraConnection[]
+  oauthStates        OAuthState[]
 
   @@map("users")
 }
 
 // Designed for the future Microsoft sign-in (Delivery 2). Never auto-link by email.
+enum JiraConnectionStatus {
+  active
+  reauthorization_required
+
+  @@map("jira_connection_status")
+}
+
 model ExternalIdentity {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
@@ -87,7 +96,6 @@ model UserPreferences {
 model AuditEvent {
   id             String   @id @default(uuid()) @db.Uuid
   userId         String?  @map("user_id") @db.Uuid
-  // FK to jira_connections is added in Phase 2.
   connectionId   String?  @map("connection_id") @db.Uuid
   eventType      String   @map("event_type")
   targetIssueKey String?  @map("target_issue_key")
@@ -96,9 +104,55 @@ model AuditEvent {
   errorCode      String?  @map("error_code")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user       User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  connection JiraConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([eventType, createdAt])
   @@map("audit_events")
+}
+
+// One row per Jira site a user authorized. Tokens are stored only as AES-256-GCM envelopes
+// (see TokenCipher); never return or log them.
+model JiraConnection {
+  id                     String               @id @default(uuid()) @db.Uuid
+  userId                 String               @map("user_id") @db.Uuid
+  cloudId                String               @map("cloud_id")
+  siteUrl                String               @map("site_url")
+  siteName               String               @map("site_name")
+  atlassianAccountId     String?              @map("atlassian_account_id")
+  accessTokenCiphertext  String               @map("access_token_ciphertext")
+  refreshTokenCiphertext String               @map("refresh_token_ciphertext")
+  accessTokenExpiresAt   DateTime             @map("access_token_expires_at") @db.Timestamptz(3)
+  grantedScopes          String[]             @map("granted_scopes")
+  status                 JiraConnectionStatus @default(active)
+  encryptionKeyVersion   Int                  @map("encryption_key_version")
+  connectedAt            DateTime             @default(now()) @map("connected_at") @db.Timestamptz(3)
+  lastUsedAt             DateTime?            @map("last_used_at") @db.Timestamptz(3)
+  lastRefreshedAt        DateTime?            @map("last_refreshed_at") @db.Timestamptz(3)
+  createdAt              DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auditEvents AuditEvent[]
+
+  @@unique([userId, cloudId])
+  @@index([userId])
+  @@map("jira_connections")
+}
+
+// Short-lived, single-use OAuth state bound to the session. Only the SHA-256 hash is stored.
+model OAuthState {
+  id         String    @id @default(uuid()) @db.Uuid
+  stateHash  String    @unique @map("state_hash")
+  userId     String    @map("user_id") @db.Uuid
+  sessionId  String    @map("session_id")
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("oauth_states")
 }

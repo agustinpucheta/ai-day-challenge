@@ -46,15 +46,21 @@ MVP phases 0–8 from `docs/IMPLEMENTATION_PLAN.md`. Out of scope: Microsoft SSO
   - [x] F0.3 `.env` / `.env.example` created (no secrets versioned).
   - [x] F0.4 Docs updated (JIRA_DISCOVERY, DECISIONS D-011..D-015, PRODUCT_SPEC §4, PIPELINES D/E, IMPLEMENTATION_PLAN).
   - [x] F0.5 Work-unit commit `34487ba`, pushed to `origin/feat/jira-dashboard-mvp`. Review: passive docs-only, no review needed.
-- [ ] **F1** — Foundation and local login. Gate: two local users cannot read/modify each other's preferences; session/authorization tests pass.
+- [x] **F1** — Foundation and local login. Gate: two local users cannot read/modify each other's preferences; session/authorization tests pass.
   - [x] F1.1 D-016 recorded: independent `frontend/` and `backend/` projects (no workspace) + root orchestrator `package.json` (dev:frontend, dev:backend, dev both). ARCHITECTURE structure updated.
   - [x] F1.2 Root: orchestrator scripts, `infrastructure/docker-compose.yml` (PostgreSQL from `.env`).
   - [x] F1.3 Backend: NestJS strict TS, lint/format/typecheck/test, Prisma schema + initial migration (users, external_identities, sessions, user_preferences, audit_events).
   - [x] F1.4 Backend: register/login/logout/me, Argon2id, PostgreSQL-backed server session, session guard, global DTO validation, login rate limit, GET/PATCH own preferences; isolation tests.
   - [x] F1.4b Swagger/OpenAPI at /api/docs + openapi:export (user request, pulled from Phase 3).
   - [x] F1.5 Frontend: Vue 3 + Vite + TS + Router, lint/format/typecheck/test, base layout, login/register views, auth state, Jira connection placeholder states.
-  - [ ] F1.6 Phase close: lint, typecheck, tests in both projects; commit after approval.
-- [ ] **F2** — Individual Jira Cloud OAuth. Gate: user B cannot use user A's connection or inspect tokens; tests cover invalid callback, state replay, expiry, refresh rotation, revocation.
+  - [x] F1.6 Phase close: commits 8807b3f (backend) and 907339d (frontend), pushed. Native review: declined by context budget (lens_context_budget_exceeded, 137 files / ~18k lines); user chose to skip. Lesson: keep commits small so each is reviewable.
+- [ ] **F2** — Individual Jira Cloud OAuth. Gate: user B cannot use user A's connection or inspect tokens; tests cover invalid callback, state replay, expiry, refresh rotation, revocation. Small commits, one slice each (review-sized):
+  - [x] F2.1 Token encryption (AES-256-GCM, key version) + env schema (Atlassian vars optional: unset = feature disabled) + migration for `jira_connections` and `oauth_states`.
+  - [ ] F2.2 OAuth state service (one-time, session-bound, short expiry) + Atlassian OAuth client (authorize URL, code exchange, accessible-resources, refresh) behind an injectable HTTP port; tests with a fake Atlassian.
+  - [ ] F2.3 Connections service: persist encrypted tokens per user+cloudId, serialized rotating refresh, `reauthorization_required` status, disconnect with revoke.
+  - [ ] F2.4 HTTP layer: oauth start/callback, GET/DELETE connections, `/auth/me` jira status, OpenAPI regenerated; e2e with fake Atlassian (invalid callback, state replay, expiry, rotation, revocation, user isolation).
+  - [ ] F2.5 Frontend: Connect Jira button, connected/reauth/not-configured states, disconnect; regenerate API types.
+  - [ ] F2.6 Docs: setup of Atlassian app + scope justification; real login manual check by user (pending credentials).
 - [ ] **F3** — Jira Gateway and search/read. Gate: user sees a permitted real issue; inaccessible issues leak nothing; errors never become empty lists/0%.
 - [ ] **F4** — Metrics, subtasks and weekly SP. Gate: tests for story without subtasks, empty epic, null fields, estimate changes, in/out of period, reopen, pagination, duplicates.
 - [ ] **F5** — Blocking dependencies. Gate: fixtures for both link directions and an external blocker; direction not inverted.
@@ -86,7 +92,7 @@ MVP phases 0–8 from `docs/IMPLEMENTATION_PLAN.md`. Out of scope: Microsoft SSO
 
 ## Next step
 
-Start Phase 1 (F1): pnpm monorepo, Prisma, Docker Compose, local login.
+F2.1 token encryption + schema. User creates the Atlassian OAuth app and fills ATLASSIAN_CLIENT_ID/SECRET in .env meanwhile; code and tests use a fake Atlassian.
 
 ## Open questions
 

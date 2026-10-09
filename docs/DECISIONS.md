@@ -91,3 +91,11 @@
 - **Sesiones:** `express-session` + `connect-pg-simple` sobre la tabla `user_sessions`, creada por la migración de Prisma (`createTableIfMissing: false`). Cookie `jd.sid`, `HttpOnly`, `SameSite=Lax`, `Secure` solo con `NODE_ENV=production`, duración 8 h.
 - **Variables de entorno:** el backend lee el `.env` de la raíz y lo valida con zod al arrancar (falla rápido sin mostrar valores). `SESSION_SECRET` requiere al menos 32 caracteres.
 - **CSRF:** las solicitudes `POST`/`PUT`/`PATCH`/`DELETE` deben traer `Origin` (o `Referer`) igual a `WEB_ORIGIN`; si falta, se rechazan (`403 FORBIDDEN_ORIGIN`).
+
+## D-018 — Cifrado de tokens Jira en reposo (Fase 2)
+
+**Fecha:** 2026-10-09.
+
+**Decisión:** los tokens de acceso y de refresco se cifran con AES-256-GCM usando `crypto` de Node (sin dependencias nuevas), con IV aleatorio de 12 bytes, formato versionado `v1.<versionClave>.<iv>.<tag>.<ciphertext>` y AAD igual al identificador de la conexión. La clave vigente sale de `TOKEN_ENCRYPTION_KEY` / `TOKEN_ENCRYPTION_KEY_VERSION`; las versiones anteriores, solo para descifrar, de `TOKEN_ENCRYPTION_PREVIOUS_KEYS`. La clave es obligatoria únicamente cuando Jira OAuth está configurado (cliente, secreto y redirect URI), de modo que la API arranca sin Jira.
+
+**Tradeoff:** sin KMS externo, la seguridad depende de custodiar la variable de entorno; la rotación es manual pero sin reescritura masiva. El AAD exige conocer el id de la conexión antes de cifrar (se genera el UUID en la aplicación al crear la fila).

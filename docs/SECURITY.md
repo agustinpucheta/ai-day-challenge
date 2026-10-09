@@ -22,6 +22,15 @@
 - Token expirado/revocado -> estado que requiere reconexión; no recurrir a credenciales compartidas.
 - Desconexión limpia los tokens y hace inutilizable la conexión local.
 
+## Cifrado de tokens
+
+- Algoritmo: AES-256-GCM (Node `crypto`) con IV aleatorio de 12 bytes por cifrado y etiqueta de autenticación.
+- Formato guardado en PostgreSQL: `v1.<versionClave>.<iv>.<tag>.<ciphertext>` (segmentos en base64url). La versión de clave viaja en el propio valor y también en `jira_connections.encryption_key_version`.
+- Clave en `TOKEN_ENCRYPTION_KEY` (base64, exactamente 32 bytes) y `TOKEN_ENCRYPTION_KEY_VERSION` (entero positivo, por defecto 1); nunca en PostgreSQL ni en archivos versionados. Es obligatoria solo si Jira OAuth está configurado; si es inválida, el arranque falla nombrando únicamente la variable.
+- Rotación: generar una clave nueva, subir la versión y pasar las claves anteriores en `TOKEN_ENCRYPTION_PREVIOUS_KEYS` (JSON `{"1":"<base64>"}`) para seguir descifrando; los tokens se reescriben con la clave vigente al refrescarse.
+- AAD: cada token se vincula al identificador de su conexión, de modo que un ciphertext copiado a otra fila no descifra.
+- Los errores de descifrado (`TokenDecryptionError`) no incluyen texto plano, claves ni ciphertext.
+
 ## Autorización multiusuario
 
 - El usuario propietario se obtiene de sesión autenticada.

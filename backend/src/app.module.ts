@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { Env, ROOT_ENV_FILE, validateEnv } from './config/env';
+import { CryptoModule } from './crypto/crypto.module';
 import { HealthModule } from './health/health.module';
 import { PreferencesModule } from './preferences/preferences.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -30,6 +31,7 @@ import { UsersModule } from './users/users.module';
       }),
     }),
     PrismaModule,
+    CryptoModule,
     AuditModule,
     UsersModule,
     AuthModule,
