@@ -1,3 +1,5 @@
+import { es } from '@/i18n/es';
+
 export const MIN_QUERY_LENGTH = 2;
 export const MAX_QUERY_LENGTH = 100;
 
@@ -10,13 +12,13 @@ export function normalizeQuery(raw: unknown): string {
 export function validateQuery(raw: unknown): string | null {
   const query = normalizeQuery(raw);
   if (query.length < MIN_QUERY_LENGTH) {
-    return `Enter at least ${MIN_QUERY_LENGTH} characters to search.`;
+    return es.search.minLength(MIN_QUERY_LENGTH);
   }
   if (query.length > MAX_QUERY_LENGTH) {
-    return `Use at most ${MAX_QUERY_LENGTH} characters.`;
+    return es.search.maxLength(MAX_QUERY_LENGTH);
   }
   if (/[\u0000-\u001f\u007f]/.test(query)) {
-    return 'The search cannot contain control characters.';
+    return es.search.controlChars;
   }
   return null;
 }

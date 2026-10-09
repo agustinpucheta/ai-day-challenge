@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { es } from '@/i18n/es';
 import { normalizeQuery, validateQuery } from '@/issues/query';
 
 const props = withDefaults(
   defineProps<{ initialQuery?: string; busy?: boolean; inputId?: string; label?: string }>(),
-  { initialQuery: '', busy: false, inputId: 'issue-search', label: 'Search issues' },
+  { initialQuery: '', busy: false, inputId: 'issue-search', label: es.search.label },
 );
 
 const emit = defineEmits<{ search: [query: string] }>();
@@ -35,14 +36,14 @@ function onSubmit(): void {
         v-model="text"
         type="search"
         autocomplete="off"
-        placeholder="Text or issue key, e.g. MASIN-123"
+        :placeholder="es.search.placeholder"
         :aria-invalid="error !== null"
         :aria-describedby="error ? `${inputId}-error` : undefined"
       />
       <p v-if="error" :id="`${inputId}-error`" class="field__error" role="alert">{{ error }}</p>
     </div>
     <button type="submit" class="button button--primary search-form__submit" :disabled="busy">
-      Search
+      {{ es.search.submit }}
     </button>
   </form>
 </template>

@@ -83,7 +83,7 @@ async function submit(wrapper: Wrapper, text: string) {
 }
 
 const loadMoreButton = (wrapper: Wrapper) =>
-  wrapper.findAll('button').find((b) => b.text() === 'Load more');
+  wrapper.findAll('button').find((b) => b.text() === 'Cargar más');
 
 const trackButton = (wrapper: Wrapper, key: string) =>
   wrapper
@@ -114,13 +114,13 @@ describe('IssueSearchView', () => {
 
     expect(trackingCalls.filter((c) => c.method === 'GET')).toHaveLength(1);
     expect(trackButton(wrapper, 'MASIN-1')?.text()).toBe('Track MASIN-1');
-    expect(trackButton(wrapper, 'MASIN-2')?.text()).toBe('Stop tracking MASIN-2');
+    expect(trackButton(wrapper, 'MASIN-2')?.text()).toBe('Untrack MASIN-2');
 
     await trackButton(wrapper, 'MASIN-1')?.trigger('click');
     await flushPromises();
 
     expect(trackingCalls.find((c) => c.method === 'POST')?.body).toEqual({ issueKey: 'MASIN-1' });
-    expect(trackButton(wrapper, 'MASIN-1')?.text()).toBe('Stop tracking MASIN-1');
+    expect(trackButton(wrapper, 'MASIN-1')?.text()).toBe('Untrack MASIN-1');
   });
 
   it('shows the tracking error next to the row when tracking fails', async () => {
@@ -140,7 +140,7 @@ describe('IssueSearchView', () => {
     await trackButton(wrapper, 'MASIN-1')?.trigger('click');
     await flushPromises();
 
-    expect(wrapper.get('tbody [role="alert"]').text()).toContain('You can track up to 50 issues');
+    expect(wrapper.get('tbody [role="alert"]').text()).toContain('Podés seguir hasta 50 issues');
     expect(trackButton(wrapper, 'MASIN-1')?.text()).toBe('Track MASIN-1');
   });
 
@@ -149,7 +149,7 @@ describe('IssueSearchView', () => {
 
     const { wrapper } = await mountAt('/issues');
 
-    expect(wrapper.text()).toContain('Search by text or by issue key');
+    expect(wrapper.text()).toContain('Buscá por texto o por clave de issue');
     expect(urls).toHaveLength(0);
   });
 
@@ -159,7 +159,7 @@ describe('IssueSearchView', () => {
 
     await submit(wrapper, ' a ');
 
-    expect(wrapper.get('.field__error').text()).toContain('at least 2');
+    expect(wrapper.get('.field__error').text()).toContain('al menos 2');
     expect(urls).toHaveLength(0);
   });
 
@@ -168,7 +168,7 @@ describe('IssueSearchView', () => {
 
     const { wrapper } = await mountAt('/issues?q=a');
 
-    expect(wrapper.get('[role="alert"]').text()).toContain('at least 2');
+    expect(wrapper.get('[role="alert"]').text()).toContain('al menos 2');
     expect(urls).toHaveLength(0);
   });
 
@@ -191,9 +191,9 @@ describe('IssueSearchView', () => {
     expect(external.attributes('rel')).toBe('noopener noreferrer');
     expect(external.attributes('href')).toBe('https://acme.atlassian.net/browse/MASIN-1');
     expect(wrapper.find('.badge--indeterminate').text()).toBe('In Progress');
-    expect(wrapper.find('.badge--cancelled').text()).toBe('Cancelled');
-    expect(wrapper.text()).toContain('2 loaded');
-    expect(wrapper.text()).toContain('Last fetched');
+    expect(wrapper.find('.badge--cancelled').text()).toBe('Cancelado');
+    expect(wrapper.text()).toContain('2 cargados');
+    expect(wrapper.text()).toContain('Última lectura');
     expect(wrapper.html()).not.toContain(SECRET);
   });
 
@@ -207,34 +207,34 @@ describe('IssueSearchView', () => {
     expect(wrapper.text()).toContain('MASIN-9');
   });
 
-  it('shows "No issues found" only for a successful empty 200', async () => {
+  it('shows "No se encontraron issues" only for a successful empty 200', async () => {
     stubSearch(() => page([]));
 
     const { wrapper } = await mountAt('/issues?q=nothing');
 
-    expect(wrapper.text()).toContain('No issues found for “nothing”');
+    expect(wrapper.text()).toContain('No se encontraron issues para “nothing”');
     expect(wrapper.find('table').exists()).toBe(false);
   });
 
   it.each([
-    [400, 'VALIDATION_ERROR', 'server says VALIDATION_ERROR'],
-    [409, 'JIRA_NOT_CONNECTED', 'Jira is not connected'],
-    [424, 'JIRA_REAUTH_REQUIRED', 'Jira rejected the API token'],
-    [424, 'JIRA_FORBIDDEN', 'Jira denied access'],
-    [429, 'JIRA_RATE_LIMITED', 'Retry in 17 seconds'],
-    [503, 'JIRA_UNAVAILABLE', 'Jira is unavailable'],
+    [400, 'VALIDATION_ERROR', 'Revisá los datos ingresados'],
+    [409, 'JIRA_NOT_CONNECTED', 'Jira no está conectado'],
+    [424, 'JIRA_REAUTH_REQUIRED', 'Jira rechazó el token de API'],
+    [424, 'JIRA_FORBIDDEN', 'Jira denegó el acceso'],
+    [429, 'JIRA_RATE_LIMITED', 'Reintentá en 17 segundos'],
+    [503, 'JIRA_UNAVAILABLE', 'Jira no está disponible'],
   ])('shows %i %s as an error, never as an empty list', async (status, code, text) => {
     stubSearch(() => failure(status, code, { 'Retry-After': '17' }));
 
     const { wrapper } = await mountAt('/issues?q=login');
 
     expect(wrapper.get('[role="alert"]').text()).toContain(text);
-    expect(wrapper.text()).not.toContain('No issues found');
-    expect(wrapper.text()).not.toContain('loaded');
+    expect(wrapper.text()).not.toContain('No se encontraron issues');
+    expect(wrapper.text()).not.toContain('cargado');
     expect(wrapper.find('table').exists()).toBe(false);
   });
 
-  it('links to the connection panel when Jira is not connected', async () => {
+  it('links to the connection panel when Jira no está conectado', async () => {
     stubSearch(() => failure(409, 'JIRA_NOT_CONNECTED'));
 
     const { wrapper } = await mountAt('/issues?q=login');
@@ -243,15 +243,15 @@ describe('IssueSearchView', () => {
     expect(wrapper.text()).toContain('JIRA_API_TOKEN');
   });
 
-  it('shows a network error and recovers through Try again', async () => {
+  it('shows a network error and recovers through Reintentar', async () => {
     let attempt = 0;
     stubSearch(() => {
       if (++attempt === 1) throw new TypeError('Failed to fetch');
       return page([issue('MASIN-1')]);
     });
     const { wrapper } = await mountAt('/issues?q=login');
-    expect(wrapper.get('[role="alert"]').text()).toContain('Cannot reach the server');
-    expect(wrapper.text()).not.toContain('No issues found');
+    expect(wrapper.get('[role="alert"]').text()).toContain('No se pudo conectar con el servidor');
+    expect(wrapper.text()).not.toContain('No se encontraron issues');
 
     await wrapper.get('[role="alert"] + div button').trigger('click');
     await flushPromises();
@@ -266,7 +266,7 @@ describe('IssueSearchView', () => {
         : page([issue('MASIN-1'), issue('MASIN-2')], 'next-1'),
     );
     const { wrapper } = await mountAt('/issues?q=login');
-    expect(wrapper.text()).toContain('2 loaded');
+    expect(wrapper.text()).toContain('2 cargados');
 
     await loadMoreButton(wrapper)?.trigger('click');
     await flushPromises();
@@ -278,7 +278,7 @@ describe('IssueSearchView', () => {
       'MASIN-2',
       'MASIN-3',
     ]);
-    expect(wrapper.text()).toContain('3 loaded');
+    expect(wrapper.text()).toContain('3 cargados');
     expect(loadMoreButton(wrapper)).toBeUndefined();
   });
 
@@ -294,7 +294,7 @@ describe('IssueSearchView', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('MASIN-1');
-    expect(wrapper.get('[role="alert"]').text()).toContain('Jira is unavailable');
+    expect(wrapper.get('[role="alert"]').text()).toContain('Jira no está disponible');
   });
 
   it('ignores a stale response when the query changes', async () => {
@@ -307,7 +307,7 @@ describe('IssueSearchView', () => {
         : page([issue('MASIN-2')]),
     );
     const { wrapper, router } = await mountAt('/issues?q=first');
-    expect(wrapper.text()).toContain('Searching Jira');
+    expect(wrapper.text()).toContain('Buscando en Jira');
 
     await router.push('/issues?q=second');
     await flushPromises();

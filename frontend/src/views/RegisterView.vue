@@ -5,6 +5,7 @@ import { isApiError } from '@/api/errors';
 import { useSession } from '@/auth/session';
 import AuthShell from '@/components/AuthShell.vue';
 import ErrorAlert from '@/components/ErrorAlert.vue';
+import { es } from '@/i18n/es';
 
 /** Mirrors the backend password policy (PASSWORD_MIN_LENGTH); the backend stays authoritative. */
 const PASSWORD_MIN_LENGTH = 12;
@@ -43,16 +44,18 @@ async function onSubmit(): Promise<void> {
 
 <template>
   <AuthShell title-id="register-title">
-    <h1 id="register-title">Create account</h1>
+    <h1 id="register-title">{{ es.auth.createAccount }}</h1>
 
     <div v-if="registrationDisabled" class="alert alert--warning" role="alert">
-      <p><strong>Registration is disabled on this server.</strong></p>
-      <p>Ask an administrator for an account, then sign in.</p>
+      <p>
+        <strong>{{ es.auth.registrationDisabled }}</strong>
+      </p>
+      <p>{{ es.auth.askAdmin }}</p>
     </div>
 
     <form v-else class="stack" novalidate @submit.prevent="onSubmit">
       <div class="field">
-        <label for="register-email">Email</label>
+        <label for="register-email">{{ es.auth.email }}</label>
         <input
           id="register-email"
           v-model="email"
@@ -63,7 +66,9 @@ async function onSubmit(): Promise<void> {
         />
       </div>
       <div class="field">
-        <label for="register-name">Display name <span class="muted">(optional)</span></label>
+        <label for="register-name"
+          >{{ es.auth.displayName }} <span class="muted">{{ es.auth.optional }}</span></label
+        >
         <input
           id="register-name"
           v-model="displayName"
@@ -73,7 +78,7 @@ async function onSubmit(): Promise<void> {
         />
       </div>
       <div class="field">
-        <label for="register-password">Password</label>
+        <label for="register-password">{{ es.auth.password }}</label>
         <input
           id="register-password"
           v-model="password"
@@ -85,19 +90,20 @@ async function onSubmit(): Promise<void> {
           aria-describedby="register-password-hint"
         />
         <p id="register-password-hint" class="hint">
-          At least {{ PASSWORD_MIN_LENGTH }} characters.
+          {{ es.auth.passwordHint(PASSWORD_MIN_LENGTH) }}
         </p>
       </div>
 
       <ErrorAlert v-if="error" :error="error" />
 
       <button type="submit" class="button button--primary" :disabled="submitting">
-        {{ submitting ? 'Creating account…' : 'Create account' }}
+        {{ submitting ? es.auth.creatingAccount : es.auth.createAccount }}
       </button>
     </form>
 
     <p class="muted">
-      Already have an account? <RouterLink :to="{ name: 'login' }">Sign in</RouterLink>
+      {{ es.auth.haveAccount }}
+      <RouterLink :to="{ name: 'login' }">{{ es.auth.signIn }}</RouterLink>
     </p>
   </AuthShell>
 </template>

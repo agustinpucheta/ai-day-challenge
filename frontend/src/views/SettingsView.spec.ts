@@ -32,7 +32,7 @@ describe('SettingsView', () => {
 
     const patch = calls.find((call) => call.method === 'PATCH');
     expect(patch?.body).toEqual({ showSubtasks: false, weekStartsOn: 'sunday' });
-    expect(wrapper.get('[role="status"]').text()).toContain('Preferences saved');
+    expect(wrapper.get('[role="status"]').text()).toContain('Preferencias guardadas');
   });
 
   it('does not send a request when nothing changed', async () => {
@@ -57,7 +57,7 @@ describe('SettingsView', () => {
     const wrapper = mount(SettingsView);
     await flushPromises();
 
-    expect(wrapper.get('[role="alert"]').text()).toContain('Database unavailable');
+    expect(wrapper.get('[role="alert"]').text()).toContain('El servicio no está disponible');
     expect(wrapper.find('form').exists()).toBe(false);
   });
 });

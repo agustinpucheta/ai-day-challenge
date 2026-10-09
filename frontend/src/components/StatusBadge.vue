@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { IssueStatus } from '@/api/client';
+import { es } from '@/i18n/es';
 import { statusStation } from '@/issues/progress';
 import StationMark from './StationMark.vue';
 
@@ -21,8 +22,8 @@ const variant = computed(() => {
   return props.status.categoryKey;
 });
 const label = computed(() => {
-  if (props.status.isCancelled) return 'Cancelled';
-  if (props.status.isAvailable) return `Available · ${props.status.name}`;
+  if (props.status.isCancelled) return es.badges.cancelled;
+  if (props.status.isAvailable) return `${es.badges.available} · ${props.status.name}`;
   return props.status.name;
 });
 </script>

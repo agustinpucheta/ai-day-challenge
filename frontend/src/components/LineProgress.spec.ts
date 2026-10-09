@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ALL_CANCELLED, NO_CHILDREN, NO_SUBTASKS, progress } from '@/test/fixtures';
 import LineProgress from './LineProgress.vue';
 
-const line = (p = progress(), toneIndex = 0, label = 'MASIN-1 progress') =>
+const line = (p = progress(), toneIndex = 0, label = 'Avance de MASIN-1') =>
   mount(LineProgress, { props: { progress: p, toneIndex, label } });
 
 const kinds = (wrapper: ReturnType<typeof line>) =>
@@ -58,7 +58,7 @@ describe('LineProgress stations', () => {
     expect(wrapper.findAll('[data-station]')).toHaveLength(24);
     expect(wrapper.get('.line-progress').attributes('data-compressed')).toBe('true');
     expect(wrapper.get('[role="progressbar"]').attributes('aria-valuetext')).toContain(
-      '33 of 63 done · 10 in progress · 20 pending · 2 cancelled',
+      '33 de 63 terminados · 10 en curso · 20 pendientes · 2 cancelados',
     );
     expect(kinds(wrapper)).toContain('available');
     expect(kinds(wrapper)).toContain('cancelled');
@@ -76,9 +76,9 @@ describe('LineProgress percent and accessibility', () => {
     expect(el.attributes('aria-valuenow')).toBe('58.3');
     expect(el.attributes('aria-valuemin')).toBe('0');
     expect(el.attributes('aria-valuemax')).toBe('100');
-    expect(el.attributes('aria-label')).toBe('MASIN-1 progress');
+    expect(el.attributes('aria-label')).toBe('Avance de MASIN-1');
     expect(el.attributes('aria-valuetext')).toBe(
-      '58.3%, 7 of 12 done · 3 in progress · 2 pending · 1 cancelled',
+      '58.3%, 7 de 12 terminados · 3 en curso · 2 pendientes · 1 cancelado',
     );
   });
 
@@ -140,7 +140,7 @@ describe('LineProgress without an honest percentage', () => {
   });
 
   it('draws a broken line, with no figure at all, when the read failed', () => {
-    const wrapper = mount(LineProgress, { props: { broken: true, label: 'MASIN-1 progress' } });
+    const wrapper = mount(LineProgress, { props: { broken: true, label: 'Avance de MASIN-1' } });
 
     expect(wrapper.get('.line-progress').attributes('data-state')).toBe('broken');
     expect(wrapper.find('.line-progress__mark--broken').exists()).toBe(true);

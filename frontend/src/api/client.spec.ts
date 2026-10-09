@@ -155,7 +155,7 @@ describe('api client', () => {
       expect(error).toMatchObject({ status, code, message: `message for ${code}` });
     });
 
-    it('exposes Retry-After seconds and ignores invalid values', async () => {
+    it('exposes Retry-After segundos and ignores invalid values', async () => {
       const respond = (retryAfter: string): Promise<ApiError> =>
         createApiClient({
           fetch: vi.fn(

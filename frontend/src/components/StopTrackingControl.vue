@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { es } from '@/i18n/es';
 
 const props = withDefaults(
   defineProps<{ issueKey: string; busy?: boolean; error?: string | null; label?: string }>(),
-  { busy: false, error: null, label: 'Stop tracking' },
+  { busy: false, error: null, label: es.common.untrack },
 );
 
 defineEmits<{ confirm: [] }>();
@@ -29,10 +30,10 @@ const nameSuffix = computed(() => ` ${props.issueKey}`);
         :aria-busy="busy"
         @click="$emit('confirm')"
       >
-        {{ busy ? 'Removing…' : 'Yes, remove' }}
+        {{ busy ? es.tracking.removing : es.tracking.confirmRemove }}
       </button>
       <button type="button" class="button" :disabled="busy" @click="confirming = false">
-        Cancel
+        {{ es.common.cancel }}
       </button>
     </div>
     <p v-if="error" class="field__error" role="alert">{{ error }}</p>

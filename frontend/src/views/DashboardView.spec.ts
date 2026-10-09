@@ -54,7 +54,7 @@ describe('DashboardView Jira connection', () => {
 
     const { wrapper } = await mountDashboard();
 
-    expect(wrapper.text()).toContain('Not configured');
+    expect(wrapper.text()).toContain('No configurado');
     expect(wrapper.text()).toContain('JIRA_API_TOKEN');
     expect(verifyCalls(calls)).toHaveLength(0);
   });
@@ -68,10 +68,10 @@ describe('DashboardView Jira connection', () => {
 
     const { wrapper } = await mountDashboard();
 
-    expect(wrapper.text()).toContain('Connected');
+    expect(wrapper.text()).toContain('Conectado');
     expect(wrapper.text()).toContain('Ada Lovelace');
     expect(wrapper.text()).toContain(SITE);
-    expect(wrapper.text()).toContain('Last checked');
+    expect(wrapper.text()).toContain('Última verificación');
     expect(verifyCalls(calls)).toHaveLength(1);
     expect(wrapper.html()).not.toContain(SECRET);
     expect(wrapper.html()).not.toContain(EMAIL);
@@ -89,7 +89,7 @@ describe('DashboardView Jira connection', () => {
     await flushPromises();
 
     expect(verifyCalls(calls)).toHaveLength(2);
-    expect(wrapper.text()).toContain('Connected');
+    expect(wrapper.text()).toContain('Conectado');
   });
 
   it('shows the busy verifying state while Jira answers', async () => {
@@ -105,20 +105,20 @@ describe('DashboardView Jira connection', () => {
 
     const { wrapper } = await mountDashboard();
 
-    expect(wrapper.text()).toContain('Verifying');
+    expect(wrapper.text()).toContain('Verificando');
     expect(wrapper.get('[aria-labelledby="jira-panel-title"]').attributes('aria-busy')).toBe(
       'true',
     );
     release(verified());
     await flushPromises();
-    expect(wrapper.text()).toContain('Connected');
+    expect(wrapper.text()).toContain('Conectado');
   });
 
   it.each([
-    ['JIRA_REAUTH_REQUIRED', 424, 'Jira rejected the API token'],
-    ['JIRA_FORBIDDEN', 424, 'Jira denied access'],
-    ['JIRA_RATE_LIMITED', 429, 'Jira is rate limiting requests'],
-    ['JIRA_UNAVAILABLE', 503, 'Jira is unavailable'],
+    ['JIRA_REAUTH_REQUIRED', 424, 'Jira rechazó el token de API'],
+    ['JIRA_FORBIDDEN', 424, 'Jira denegó el acceso'],
+    ['JIRA_RATE_LIMITED', 429, 'Jira está limitando los pedidos'],
+    ['JIRA_UNAVAILABLE', 503, 'Jira no está disponible'],
   ])('maps %s to its own message, never to success', async (code, status, title) => {
     stubFetch({
       ...LIST_ROUTE,
@@ -129,7 +129,7 @@ describe('DashboardView Jira connection', () => {
     const { wrapper } = await mountDashboard();
 
     expect(wrapper.get('[role="alert"]').text()).toContain(title);
-    expect(wrapper.text()).not.toContain('Connected');
+    expect(wrapper.text()).not.toContain('Conectado');
     expect(wrapper.html()).not.toContain(SECRET);
   });
 
@@ -143,12 +143,12 @@ describe('DashboardView Jira connection', () => {
     });
 
     const { wrapper } = await mountDashboard();
-    expect(wrapper.text()).toContain('Retry in 30 seconds');
+    expect(wrapper.text()).toContain('Reintentá en 30 segundos');
 
     await wrapper.get(PANEL_BUTTON).trigger('click');
     await flushPromises();
 
-    expect(wrapper.text()).toContain('Connected');
+    expect(wrapper.text()).toContain('Conectado');
     expect(verifyCalls(calls)).toHaveLength(2);
   });
 
@@ -161,7 +161,7 @@ describe('DashboardView Jira connection', () => {
 
     const { wrapper } = await mountDashboard();
 
-    expect(wrapper.text()).toContain('Not configured');
+    expect(wrapper.text()).toContain('No configurado');
   });
 
   it('shows a network error when the status call fails and reloads on retry', async () => {
@@ -177,12 +177,12 @@ describe('DashboardView Jira connection', () => {
     );
 
     const { wrapper } = await mountDashboard();
-    expect(wrapper.get('[role="alert"]').text()).toContain('Cannot reach the server');
+    expect(wrapper.get('[role="alert"]').text()).toContain('No se pudo conectar con el servidor');
 
     await wrapper.get(PANEL_BUTTON).trigger('click');
     await flushPromises();
 
-    expect(wrapper.text()).toContain('Connected');
+    expect(wrapper.text()).toContain('Conectado');
   });
 
   it('sends a valid search to the issues route and rejects a too-short one', async () => {
@@ -195,7 +195,7 @@ describe('DashboardView Jira connection', () => {
 
     await input.setValue('a');
     await wrapper.get('form[role="search"]').trigger('submit');
-    expect(wrapper.get('.field__error').text()).toContain('at least 2');
+    expect(wrapper.get('.field__error').text()).toContain('al menos 2');
     expect(router.currentRoute.value.name).not.toBe('issues');
 
     await input.setValue('  MASIN-1  ');

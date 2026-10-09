@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { es } from '@/i18n/es';
 import type { ChildrenState, TrackedItem } from '@/tracking/useTrackedList';
 import { formatTime } from '@/issues/format';
 import { toneAt } from '@/issues/progress';
@@ -60,7 +61,7 @@ const childrenId = computed(() => `tracked-${props.item.id}-children`);
     <p class="tracked-card__summary">{{ issue.summary }}</p>
 
     <div class="tracked-card__progress">
-      <LineProgress :progress="progress" :tone-index="tone" :label="`${issue.key} progress`" />
+      <LineProgress :progress="progress" :tone-index="tone" :label="es.progress.label(issue.key)" />
       <ProgressSummary :progress="progress" :warnings="item.warnings" />
     </div>
 
@@ -78,22 +79,26 @@ const childrenId = computed(() => `tracked-${props.item.id}-children`);
         :aria-controls="childrenId"
         @click="$emit('toggle')"
       >
-        {{ expanded ? 'Hide stories' : `Show stories (${item.childrenCount})`
-        }}<span class="sr-only"> of {{ issue.key }}</span>
+        {{ expanded ? es.tracking.hideStories : es.tracking.showStories(item.childrenCount)
+        }}<span class="sr-only">{{ es.tracking.storiesOf(issue.key) }}</span>
       </button>
       <div v-if="expanded" :id="childrenId" class="stack" :aria-busy="children?.kind === 'loading'">
-        <h3 class="tracked-card__subtitle">Stories</h3>
-        <p v-if="!children || children.kind === 'loading'" class="muted">Loading stories…</p>
+        <h3 class="tracked-card__subtitle">{{ es.detail.stories }}</h3>
+        <p v-if="!children || children.kind === 'loading'" class="muted">
+          {{ es.tracking.loadingStories }}
+        </p>
         <IssueErrorState
           v-else-if="children.kind === 'error'"
           :error="children.error"
           @retry="$emit('retryChildren')"
         />
-        <p v-else-if="children.children.length === 0" class="empty-state">No children yet</p>
+        <p v-else-if="children.children.length === 0" class="empty-state">
+          {{ es.progress.noChildren }}
+        </p>
         <EpicChildrenTable
           v-else
           :children="children.children"
-          :caption="`Stories of ${issue.key}`"
+          :caption="es.tracking.storiesCaption(issue.key)"
           :tone-offset="tone + 1"
           compact
         />
@@ -108,7 +113,7 @@ const childrenId = computed(() => `tracked-${props.item.id}-children`);
         :error="removeError"
         @confirm="$emit('remove')"
       />
-      <p v-if="fetchedTime" class="hint">Read from Jira at {{ fetchedTime }}</p>
+      <p v-if="fetchedTime" class="hint">{{ es.dates.readFromJira(fetchedTime) }}</p>
     </footer>
   </article>
 </template>

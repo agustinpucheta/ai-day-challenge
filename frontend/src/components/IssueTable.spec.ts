@@ -26,7 +26,7 @@ describe('IssueTable', () => {
     const wrapper = mountTable(false);
 
     expect(wrapper.find('input[type="checkbox"]').exists()).toBe(false);
-    expect(wrapper.text()).toContain('Available · Esperar Recurso');
+    expect(wrapper.text()).toContain('Disponible · Esperar Recurso');
     expect(wrapper.findAll('tbody tr')).toHaveLength(2);
   });
 
@@ -44,6 +44,6 @@ describe('IssueTable', () => {
 
     await wrapper.get('input[type="checkbox"]').setValue(true);
 
-    expect(wrapper.text()).toContain('No available items');
+    expect(wrapper.text()).toContain('No hay ítems disponibles');
   });
 });

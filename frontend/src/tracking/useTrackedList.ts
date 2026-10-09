@@ -1,6 +1,7 @@
 import { computed, onScopeDispose, ref, shallowReactive } from 'vue';
 import { api, type DashboardChild, type DashboardIssue, type TrackedIssueItem } from '@/api/client';
 import { isApiError } from '@/api/errors';
+import { es } from '@/i18n/es';
 import { useTracking } from './useTracking';
 
 /** A per-item error; `retryAfterSeconds` is only known after a retry on that card. */
@@ -148,7 +149,7 @@ export function useTrackedList() {
       if (id !== generation) return;
       const failure: TrackedItemError = isApiError(error)
         ? { code: error.code, message: error.message, retryAfterSeconds: error.retryAfterSeconds }
-        : { code: 'UNKNOWN', message: 'Something went wrong.' };
+        : { code: 'UNKNOWN', message: es.failure.generic.title };
       patchItem(key, (item) => ({ ...item, error: failure }));
     } finally {
       if (id === generation) retrying.delete(key);

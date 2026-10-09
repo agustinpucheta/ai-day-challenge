@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { es } from '@/i18n/es';
 import type { TrackedItem } from '@/tracking/useTrackedList';
 import { describeFailure } from '@/tracking/errorCopy';
 import LineProgress from './LineProgress.vue';
@@ -38,9 +39,9 @@ const titleId = computed(() => `tracked-${props.item.id}-title`);
         item.issueKey
       }}</RouterLink>
     </h2>
-    <LineProgress broken :label="`${item.issueKey} progress`" />
+    <LineProgress broken :label="es.progress.label(item.issueKey)" />
     <div class="alert alert--error">
-      <strong>{{ compact ? 'Could not load this issue' : copy.title }}</strong>
+      <strong>{{ compact ? es.tracking.loadFailed : copy.title }}</strong>
       <p v-if="!compact">{{ copy.text }}</p>
     </div>
     <div class="tracked-card__footer">
@@ -51,12 +52,12 @@ const titleId = computed(() => `tracked-${props.item.id}-title`);
         :disabled="retrying"
         @click="$emit('retry')"
       >
-        {{ retrying ? 'Retrying…' : 'Retry'
-        }}<span class="sr-only"> loading {{ item.issueKey }}</span>
+        {{ retrying ? es.tracking.retrying : es.common.retry
+        }}<span class="sr-only">{{ es.tracking.retryItemHint(item.issueKey) }}</span>
       </button>
       <StopTrackingControl
         :issue-key="item.issueKey"
-        label="Remove"
+        :label="es.tracking.remove"
         :busy="removing"
         :error="removeError"
         @confirm="$emit('remove')"

@@ -92,7 +92,7 @@ const sp = (wrapper: Wrapper, which: 'final' | 'planned') =>
   wrapper.get(`[data-testid="sp-${which}"]`).text();
 
 const refreshButton = (wrapper: Wrapper) =>
-  wrapper.findAll('button').find((b) => b.text().startsWith('Refresh'));
+  wrapper.findAll('button').find((b) => b.text().startsWith('Actualizar'));
 
 describe('IssueDetailView', () => {
   beforeEach(() => {
@@ -113,18 +113,18 @@ describe('IssueDetailView', () => {
     const link = wrapper.get('a[target="_blank"]');
     expect(link.attributes('rel')).toBe('noopener noreferrer');
     expect(link.attributes('href')).toBe('https://acme.atlassian.net/browse/MASIN-1');
-    expect(wrapper.text()).toContain('Last fetched');
+    expect(wrapper.text()).toContain('Última lectura');
     expect(wrapper.html()).not.toContain(SECRET);
     expect(wrapper.html()).not.toContain(EMAIL);
   });
 
-  it('shows "Not estimated" for null story points, never 0', async () => {
+  it('shows "Sin estimar" for null story points, never 0', async () => {
     stubDetail(() => detail({ issue: { storyPoints: { final: null, planned: null } } }));
 
     const { wrapper } = await mountAt('/issues/MASIN-1');
 
-    expect(sp(wrapper, 'final')).toContain('Not estimated');
-    expect(sp(wrapper, 'planned')).toContain('Not estimated');
+    expect(sp(wrapper, 'final')).toContain('Sin estimar');
+    expect(sp(wrapper, 'planned')).toContain('Sin estimar');
     expect(sp(wrapper, 'final')).not.toMatch(/\b0\b/);
     expect(wrapper.text()).not.toContain('vs planned');
   });
@@ -134,7 +134,7 @@ describe('IssueDetailView', () => {
     const differing = await mountAt('/issues/MASIN-1');
     expect(sp(differing.wrapper, 'final')).toContain('5');
     expect(sp(differing.wrapper, 'planned')).toContain('3');
-    expect(differing.wrapper.text()).toContain('+2 vs planned');
+    expect(differing.wrapper.text()).toContain('+2 vs planificados');
 
     stubDetail(() => detail({ issue: { storyPoints: { final: 3, planned: 3 } } }));
     const same = await mountAt('/issues/MASIN-1');
@@ -143,7 +143,7 @@ describe('IssueDetailView', () => {
     stubDetail(() => detail({ issue: { storyPoints: { final: 3, planned: null } } }));
     const half = await mountAt('/issues/MASIN-1');
     expect(half.wrapper.text()).not.toContain('vs planned');
-    expect(sp(half.wrapper, 'planned')).toContain('Not estimated');
+    expect(sp(half.wrapper, 'planned')).toContain('Sin estimar');
   });
 
   it('shows an explicit empty state for no subtasks', async () => {
@@ -151,7 +151,7 @@ describe('IssueDetailView', () => {
 
     const { wrapper } = await mountAt('/issues/MASIN-1');
 
-    expect(wrapper.text()).toContain('No subtasks');
+    expect(wrapper.text()).toContain('No hay subtareas');
     expect(wrapper.find('table').exists()).toBe(false);
     expect(wrapper.text()).not.toContain('%');
   });
@@ -197,9 +197,11 @@ describe('IssueDetailView', () => {
       const { wrapper } = await mountAt('/issues/MASIN-1');
 
       expect(bar(wrapper).attributes('aria-valuenow')).toBe('58.3');
-      expect(bar(wrapper).attributes('aria-label')).toBe('MASIN-1 progress');
+      expect(bar(wrapper).attributes('aria-label')).toBe('Avance de MASIN-1');
       expect(wrapper.text()).toContain('58.3%');
-      expect(wrapper.text()).toContain('7 of 12 done · 3 in progress · 2 pending · 1 cancelled');
+      expect(wrapper.text()).toContain(
+        '7 de 12 terminados · 3 en curso · 2 pendientes · 1 cancelado',
+      );
       const html = wrapper.html();
       expect(html.indexOf('progress-title')).toBeLessThan(html.indexOf('sp-title'));
     });
@@ -213,8 +215,8 @@ describe('IssueDetailView', () => {
     });
 
     it.each([
-      ['no subtasks', NO_SUBTASKS, 'No subtasks yet'],
-      ['all cancelled', ALL_CANCELLED, 'All items cancelled'],
+      ['no subtasks', NO_SUBTASKS, 'Todavía sin subtareas'],
+      ['all cancelled', ALL_CANCELLED, 'Todos cancelados'],
     ])('explains %s without any percentage', async (_name, p, copy) => {
       stubDetail(() => detail({ progress: p }));
 
@@ -235,8 +237,8 @@ describe('IssueDetailView', () => {
 
       const { wrapper } = await mountAt('/issues/MASIN-1');
 
-      expect(wrapper.text()).toContain('2 items with unknown status');
-      expect(wrapper.get('.alert--warning').text()).toContain('Approximate');
+      expect(wrapper.text()).toContain('2 ítems con estado desconocido');
+      expect(wrapper.get('.alert--warning').text()).toContain('Avance aproximado');
       expect(wrapper.get('.warnings').text()).toContain('first 300 children');
     });
 
@@ -267,29 +269,34 @@ describe('IssueDetailView', () => {
       expect(wrapper.get('h2#children-title').text()).toBe('Stories');
       expect(wrapper.find('#subtasks-title').exists()).toBe(false);
       expect(wrapper.get('.line-progress__percent').text()).toBe('50%');
+      // an Epic carries no Story points of its own: one quiet line instead of two "Sin estimar"
+      const spCard = wrapper.get('section[aria-labelledby="sp-title"]');
+      expect(spCard.text()).toContain('Los Story points se registran en las subtareas.');
+      expect(spCard.find('[data-testid="sp-planned"]').exists()).toBe(false);
+      expect(spCard.find('[data-testid="sp-final"]').exists()).toBe(false);
       const rows = wrapper.findAll('tbody tr');
       expect(rows).toHaveLength(2);
       expect(rows[0]!.get('a').attributes('href')).toBe('/issues/MASIN-10');
       expect(rows[0]!.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('33.3');
       expect(rows[0]!.get('[data-testid="sp-final"] dd').text()).toBe('8');
-      expect(rows[0]!.get('[data-testid="sp-final"] dt').text()).toBe('Final');
+      expect(rows[0]!.get('[data-testid="sp-final"] dt').text()).toBe('Finales');
       expect(rows[0]!.get('[data-testid="sp-planned"] dd').text()).toBe('5');
-      expect(rows[0]!.get('[data-testid="sp-planned"] dt').text()).toBe('Planned');
+      expect(rows[0]!.get('[data-testid="sp-planned"] dt').text()).toBe('Planificados');
       expect(rows[0]!.get('a[target="_blank"]').attributes('href')).toContain('MASIN-10');
       expect(rows[0]!.find('.badge--indeterminate').exists()).toBe(true);
-      // a story without subtasks says so, and its story points are "Not estimated", never 0
-      expect(rows[1]!.text()).toContain('No subtasks yet');
+      // a story without subtasks says so, and its story points are "Sin estimar", never 0
+      expect(rows[1]!.text()).toContain('Todavía sin subtareas');
       expect(rows[1]!.find('[role="progressbar"]').exists()).toBe(false);
-      expect(rows[1]!.get('[data-testid="sp-final"]').text()).toContain('Not estimated');
+      expect(rows[1]!.get('[data-testid="sp-final"]').text()).toContain('Sin estimar');
       expect(rows[1]!.text()).not.toContain('%');
     });
 
-    it('says "No children yet" for an epic without children, with no percentage', async () => {
+    it('says "Todavía sin hijos" for an epic without children, with no percentage', async () => {
       stubDetail(() => detail({ progress: NO_CHILDREN, children: [] }));
 
       const { wrapper } = await mountAt('/issues/EPIC-1');
 
-      expect(wrapper.text()).toContain('No children yet');
+      expect(wrapper.text()).toContain('Todavía sin hijos');
       expect(wrapper.find('table').exists()).toBe(false);
       expect(wrapper.text()).not.toContain('%');
     });
@@ -297,7 +304,7 @@ describe('IssueDetailView', () => {
 
   describe('tracking', () => {
     const toggle = (wrapper: Wrapper) =>
-      wrapper.findAll('button').find((b) => /^(Track|Stop tracking)/.test(b.text()));
+      wrapper.findAll('button').find((b) => /^(Track|Untrack)/.test(b.text()));
 
     it('offers Track for an issue that is not followed, named with its key', async () => {
       stubDetail(() => detail());
@@ -308,7 +315,7 @@ describe('IssueDetailView', () => {
       expect(toggle(wrapper)?.attributes('disabled')).toBeUndefined();
     });
 
-    it('offers Stop tracking for an issue that is already followed', async () => {
+    it('offers Untrack for an issue that is already followed', async () => {
       trackedItems = [
         {
           id: 'e1',
@@ -322,7 +329,7 @@ describe('IssueDetailView', () => {
 
       const { wrapper } = await mountAt('/issues/MASIN-1');
 
-      expect(toggle(wrapper)?.text()).toBe('Stop tracking MASIN-1');
+      expect(toggle(wrapper)?.text()).toBe('Untrack MASIN-1');
     });
   });
 
@@ -331,28 +338,26 @@ describe('IssueDetailView', () => {
 
     const { wrapper } = await mountAt('/issues/NOPE-1');
 
-    expect(wrapper.get('[role="alert"]').text()).toContain(
-      "Issue not found or you don't have access",
-    );
-    expect(wrapper.text()).not.toContain('Try again');
-    expect(wrapper.text()).not.toContain('Not estimated');
-    expect(wrapper.text()).not.toContain('No subtasks');
+    expect(wrapper.get('[role="alert"]').text()).toContain('Issue no encontrado o no tenés acceso');
+    expect(wrapper.text()).not.toContain('Reintentar');
+    expect(wrapper.text()).not.toContain('Sin estimar');
+    expect(wrapper.text()).not.toContain('No hay subtareas');
   });
 
   it.each([
-    [400, 'VALIDATION_ERROR', 'server says VALIDATION_ERROR'],
-    [409, 'JIRA_NOT_CONNECTED', 'Jira is not connected'],
-    [424, 'JIRA_REAUTH_REQUIRED', 'Jira rejected the API token'],
-    [424, 'JIRA_FORBIDDEN', 'Jira denied access'],
-    [429, 'JIRA_RATE_LIMITED', 'Jira is rate limiting requests'],
-    [503, 'JIRA_UNAVAILABLE', 'Jira is unavailable'],
+    [400, 'VALIDATION_ERROR', 'Revisá los datos ingresados'],
+    [409, 'JIRA_NOT_CONNECTED', 'Jira no está conectado'],
+    [424, 'JIRA_REAUTH_REQUIRED', 'Jira rechazó el token de API'],
+    [424, 'JIRA_FORBIDDEN', 'Jira denegó el acceso'],
+    [429, 'JIRA_RATE_LIMITED', 'Jira está limitando los pedidos'],
+    [503, 'JIRA_UNAVAILABLE', 'Jira no está disponible'],
   ])('shows %i %s as an error with no zero values', async (statusCode, code, text) => {
     stubDetail(() => failure(statusCode, code));
 
     const { wrapper } = await mountAt('/issues/MASIN-1');
 
     expect(wrapper.get('[role="alert"]').text()).toContain(text);
-    expect(wrapper.text()).not.toContain('No subtasks');
+    expect(wrapper.text()).not.toContain('No hay subtareas');
     expect(wrapper.text()).not.toContain('Final (consumed)');
   });
 
@@ -363,7 +368,7 @@ describe('IssueDetailView', () => {
       return detail();
     });
     const { wrapper } = await mountAt('/issues/MASIN-1');
-    expect(wrapper.get('[role="alert"]').text()).toContain('Cannot reach the server');
+    expect(wrapper.get('[role="alert"]').text()).toContain('No se pudo conectar con el servidor');
 
     await wrapper.get('[role="alert"] + div button').trigger('click');
     await flushPromises();
@@ -400,7 +405,7 @@ describe('IssueDetailView', () => {
     await refreshButton(wrapper)?.trigger('click');
     await flushPromises();
 
-    expect(wrapper.get('[role="alert"]').text()).toContain('Jira is unavailable');
+    expect(wrapper.get('[role="alert"]').text()).toContain('Jira no está disponible');
     expect(wrapper.text()).not.toContain('Final (consumed)');
   });
 

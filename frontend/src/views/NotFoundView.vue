@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import AuthShell from '@/components/AuthShell.vue';
+import { es } from '@/i18n/es';
 </script>
 
 <template>
   <AuthShell title-id="not-found-title">
-    <h1 id="not-found-title">Page not found</h1>
-    <p class="muted">The page you are looking for does not exist.</p>
-    <p><RouterLink :to="{ name: 'home' }">Go to the dashboard</RouterLink></p>
+    <h1 id="not-found-title">{{ es.pages.notFound }}</h1>
+    <p class="muted">{{ es.pages.notFoundText }}</p>
+    <p>
+      <RouterLink :to="{ name: 'home' }">{{ es.pages.goHome }}</RouterLink>
+    </p>
   </AuthShell>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { es } from '@/i18n/es';
 import IssueErrorState from '@/components/IssueErrorState.vue';
 import IssueSearchForm from '@/components/IssueSearchForm.vue';
 import IssueTable from '@/components/IssueTable.vue';
@@ -38,7 +39,7 @@ const busy = computed(() => state.value.kind === 'loading');
 <template>
   <section class="page" aria-labelledby="issues-title" :aria-busy="busy">
     <header class="page-header">
-      <h1 id="issues-title">Issues</h1>
+      <h1 id="issues-title">{{ es.nav.issues }}</h1>
     </header>
 
     <IssueSearchForm :initial-query="query" :busy="busy" @search="onSearch" />
@@ -48,11 +49,11 @@ const busy = computed(() => state.value.kind === 'loading');
 
       <div v-else-if="state.kind === 'idle'" class="empty-state empty-state--line">
         <span class="empty-state__line" aria-hidden="true"></span>
-        <p>Search by text or by issue key (for example MASIN-123).</p>
+        <p>{{ es.search.idle }}</p>
       </div>
 
       <div v-else-if="state.kind === 'loading'" class="stack">
-        <p class="muted">Searching Jira…</p>
+        <p class="muted">{{ es.search.searching }}</p>
         <div class="skeleton-rows" aria-hidden="true">
           <span v-for="n in 5" :key="n" class="skeleton skeleton--row"></span>
         </div>
@@ -67,14 +68,14 @@ const busy = computed(() => state.value.kind === 'loading');
       <template v-else>
         <div v-if="state.items.length === 0" class="empty-state empty-state--line">
           <span class="empty-state__line" aria-hidden="true"></span>
-          <p>No issues found for “{{ state.query }}”.</p>
+          <p>{{ es.search.noResults(state.query) }}</p>
         </div>
         <IssueTable
           v-else
           :issues="state.items"
-          caption="Search results"
+          :caption="es.search.caption"
           show-type
-          actions-label="Tracking"
+          :actions-label="es.table.tracking"
         >
           <template #actions="{ issue }">
             <TrackToggle :issue-key="issue.key" />
@@ -88,7 +89,7 @@ const busy = computed(() => state.value.kind === 'loading');
         />
 
         <div v-if="state.items.length > 0" class="results-bar">
-          <p class="results-bar__count">{{ state.items.length }} loaded</p>
+          <p class="results-bar__count">{{ es.search.loaded(state.items.length) }}</p>
           <LastFetched :fetched-at="state.fetchedAt" />
           <button
             v-if="state.nextPageToken && !state.loadMoreError"
@@ -97,7 +98,7 @@ const busy = computed(() => state.value.kind === 'loading');
             :disabled="state.loadingMore"
             @click="issues.loadMore()"
           >
-            {{ state.loadingMore ? 'Loading…' : 'Load more' }}
+            {{ state.loadingMore ? es.search.loadingMore : es.search.loadMore }}
           </button>
         </div>
         <LastFetched v-else :fetched-at="state.fetchedAt" />

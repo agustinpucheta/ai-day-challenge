@@ -1,3 +1,4 @@
+import { es } from '@/i18n/es';
 import type { components } from './schema';
 
 export type ValidationDetail = components['schemas']['ValidationDetailDto'];
@@ -33,7 +34,11 @@ export function isApiError(error: unknown, code?: ApiErrorCode): error is ApiErr
   return error instanceof ApiError && (code === undefined || error.code === code);
 }
 
-/** Message safe to show to the user for any thrown value. */
+/**
+ * Spanish message safe to show to the user for any thrown value. The backend message is English
+ * and meant for logs, so the copy is chosen by error code; unknown codes get a generic line.
+ */
 export function errorMessage(error: unknown): string {
-  return error instanceof ApiError ? error.message : 'Something went wrong. Please try again.';
+  if (error instanceof ApiError) return es.errorByCode[error.code] ?? es.common.unexpected;
+  return es.common.unexpected;
 }

@@ -24,8 +24,8 @@ describe('TrackedIssueCard available chip', () => {
       epicItem('MASIN-2', 4, { progress: progress({ basis: 'children', available: 1 }) }),
     );
 
-    expect(story.get('[data-testid="available-chip"]').text()).toBe('3 available');
-    expect(epic.get('[data-testid="available-chip"]').text()).toBe('1 available');
+    expect(story.get('[data-testid="available-chip"]').text()).toBe('3 disponibles');
+    expect(epic.get('[data-testid="available-chip"]').text()).toBe('1 disponible');
   });
 
   it('shows no chip when nothing is available', () => {
@@ -45,8 +45,8 @@ describe('TrackedIssueCard transit line', () => {
     expect(first.get('article').attributes('data-tone')).toBe('0');
     expect(third.get('.line-progress').attributes('data-tone')).toBe('2');
     expect(third.get('article').attributes('data-tone')).toBe('2');
-    expect(first.get('[role="progressbar"]').attributes('aria-label')).toBe('MASIN-1 progress');
-    expect(first.text()).toContain('7 of 12 done · 3 in progress · 2 pending · 1 cancelled');
+    expect(first.get('[role="progressbar"]').attributes('aria-label')).toBe('Avance de MASIN-1');
+    expect(first.text()).toContain('7 de 12 terminados · 3 en curso · 2 pendientes · 1 cancelado');
     expect(first.find('.tracked-card__tab').exists()).toBe(true);
   });
 

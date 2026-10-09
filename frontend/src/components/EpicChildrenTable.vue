@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import type { DashboardChild } from '@/api/client';
+import { es } from '@/i18n/es';
 import { toneAt } from '@/issues/progress';
 import AvailableChip from './AvailableChip.vue';
 import AvailableOnlyToggle from './AvailableOnlyToggle.vue';
@@ -31,7 +32,7 @@ const rows = computed(() =>
 <template>
   <div class="stack">
     <AvailableOnlyToggle v-model="onlyAvailable" />
-    <p v-if="rows.length === 0" class="empty-state">No available items</p>
+    <p v-if="rows.length === 0" class="empty-state">{{ es.badges.noAvailable }}</p>
     <div v-else class="table-wrap" role="region" :aria-label="caption" tabindex="0">
       <table :class="['table', 'table--children', { 'table--compact': compact }]">
         <caption class="sr-only">
@@ -41,13 +42,13 @@ const rows = computed(() =>
         </caption>
         <thead>
           <tr>
-            <th scope="col">Key</th>
-            <th scope="col">Summary</th>
-            <th v-if="!compact" scope="col">Type</th>
-            <th scope="col">Status</th>
-            <th scope="col">Progress</th>
-            <th scope="col">Story points</th>
-            <th scope="col">Jira</th>
+            <th scope="col">{{ es.table.key }}</th>
+            <th scope="col">{{ es.table.summary }}</th>
+            <th v-if="!compact" scope="col">{{ es.table.type }}</th>
+            <th scope="col">{{ es.table.status }}</th>
+            <th scope="col">{{ es.table.progress }}</th>
+            <th scope="col">{{ es.common.storyPoints }}</th>
+            <th scope="col">{{ es.common.jira }}</th>
           </tr>
         </thead>
         <tbody>
@@ -68,7 +69,7 @@ const rows = computed(() =>
               <LineProgress
                 :progress="child.progress"
                 :tone-index="toneAt(index + toneOffset)"
-                :label="`${child.key} progress`"
+                :label="es.progress.label(child.key)"
                 size="sm"
               />
               <ProgressSummary :progress="child.progress" hide-available />

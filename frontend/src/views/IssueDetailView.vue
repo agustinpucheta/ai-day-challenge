@@ -13,6 +13,7 @@ import StateLegend from '@/components/StateLegend.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
 import StoryPointsBlock from '@/components/StoryPointsBlock.vue';
 import TrackToggle from '@/components/TrackToggle.vue';
+import { es } from '@/i18n/es';
 import { lineTone } from '@/issues/progress';
 import { useDashboardIssue } from '@/issues/useDashboardIssue';
 
@@ -31,12 +32,14 @@ const tone = computed(() => lineTone(issueKey.value));
     :data-tone="tone"
     :aria-busy="state.kind === 'loading' || (state.kind === 'loaded' && state.refreshing)"
   >
-    <p><RouterLink :to="{ name: 'issues' }">← Back to search</RouterLink></p>
+    <p>
+      <RouterLink :to="{ name: 'issues' }">{{ es.detail.back }}</RouterLink>
+    </p>
 
     <div aria-live="polite" class="stack">
       <template v-if="state.kind === 'loading'">
         <h1 id="issue-title">{{ issueKey }}</h1>
-        <p class="muted">Loading issue…</p>
+        <p class="muted">{{ es.detail.loading }}</p>
         <div class="skeleton-card" aria-hidden="true">
           <span class="skeleton skeleton--title"></span>
           <span class="skeleton skeleton--numeral"></span>
@@ -63,7 +66,7 @@ const tone = computed(() => lineTone(issueKey.value));
             <AvailableChip :count="state.data.progress.available" />
           </p>
           <p v-if="state.data.issue.parentKey" class="issue-head__parent">
-            Parent:
+            {{ es.detail.parent }}
             <RouterLink :to="{ name: 'issue', params: { key: state.data.issue.parentKey } }">{{
               state.data.issue.parentKey
             }}</RouterLink>
@@ -78,12 +81,12 @@ const tone = computed(() => lineTone(issueKey.value));
 
         <div class="issue-overview">
           <section class="card card--prominent" aria-labelledby="progress-title">
-            <h2 id="progress-title" class="card__title">Progress</h2>
+            <h2 id="progress-title" class="card__title">{{ es.progress.heading }}</h2>
             <div class="stack">
               <LineProgress
                 :progress="state.data.progress"
                 :tone-index="tone"
-                :label="`${state.data.issue.key} progress`"
+                :label="es.progress.label(state.data.issue.key)"
                 size="lg"
               />
               <ProgressSummary
@@ -94,8 +97,12 @@ const tone = computed(() => lineTone(issueKey.value));
           </section>
 
           <section class="card" aria-labelledby="sp-title">
-            <h2 id="sp-title" class="card__title">Story points</h2>
+            <h2 id="sp-title" class="card__title">{{ es.common.storyPoints }}</h2>
+            <p v-if="state.data.issue.issueType.hierarchyLevel >= 1" class="muted">
+              {{ es.storyPoints.epicNote }}
+            </p>
             <StoryPointsBlock
+              v-else
               :final="state.data.issue.storyPoints.final"
               :planned="state.data.issue.storyPoints.planned"
             />
@@ -103,20 +110,29 @@ const tone = computed(() => lineTone(issueKey.value));
         </div>
 
         <section v-if="state.data.children" class="card" aria-labelledby="children-title">
-          <h2 id="children-title" class="card__title">Stories</h2>
-          <p v-if="state.data.children.length === 0" class="empty-state">No children yet</p>
+          <h2 id="children-title" class="card__title">{{ es.detail.stories }}</h2>
+          <p v-if="state.data.children.length === 0" class="empty-state">
+            {{ es.detail.noChildren }}
+          </p>
           <EpicChildrenTable
             v-else
             :children="state.data.children"
-            caption="Stories"
+            :caption="es.detail.stories"
             :tone-offset="tone + 1"
           />
         </section>
 
         <section v-else class="card" aria-labelledby="subtasks-title">
-          <h2 id="subtasks-title" class="card__title">Subtasks</h2>
-          <p v-if="state.data.subtasks.length === 0" class="empty-state">No subtasks</p>
-          <IssueTable v-else :issues="state.data.subtasks" caption="Subtasks" available-filter />
+          <h2 id="subtasks-title" class="card__title">{{ es.detail.subtasks }}</h2>
+          <p v-if="state.data.subtasks.length === 0" class="empty-state">
+            {{ es.detail.noSubtasks }}
+          </p>
+          <IssueTable
+            v-else
+            :issues="state.data.subtasks"
+            :caption="es.detail.subtasks"
+            available-filter
+          />
         </section>
 
         <div class="meta issue-foot">
@@ -127,7 +143,7 @@ const tone = computed(() => lineTone(issueKey.value));
             :disabled="state.refreshing"
             @click="detail.refresh()"
           >
-            {{ state.refreshing ? 'Refreshing…' : 'Refresh' }}
+            {{ state.refreshing ? es.common.refreshing : es.common.refresh }}
           </button>
         </div>
       </template>

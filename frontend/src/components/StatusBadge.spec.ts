@@ -26,10 +26,10 @@ describe('StatusBadge', () => {
   it('shows cancelled as its own badge, never as done', () => {
     const wrapper = badge('done', 'Closed', true);
 
-    expect(wrapper.text()).toBe('Cancelled');
+    expect(wrapper.text()).toBe('Cancelado');
     expect(wrapper.classes()).toContain('badge--cancelled');
     expect(wrapper.classes()).not.toContain('badge--done');
-    expect(wrapper.text()).not.toContain('Done');
+    expect(wrapper.text()).not.toContain('Terminado');
   });
 
   it('shows an available status distinctly, keeping the real status name as text', () => {
@@ -37,13 +37,13 @@ describe('StatusBadge', () => {
 
     expect(wrapper.classes()).toContain('badge--available');
     expect(wrapper.classes()).not.toContain('badge--new');
-    expect(wrapper.text()).toBe('Available · Esperar Recurso');
+    expect(wrapper.text()).toBe('Disponible · Esperar Recurso');
   });
 
   it('gives cancelled precedence over available', () => {
     const wrapper = badge('done', 'Esperar Recurso', true, true);
 
-    expect(wrapper.text()).toBe('Cancelled');
+    expect(wrapper.text()).toBe('Cancelado');
     expect(wrapper.classes()).toContain('badge--cancelled');
   });
 
@@ -56,7 +56,7 @@ describe('StatusBadge', () => {
     });
 
     expect(wrapper.get('[data-station]').attributes('data-station')).toBe('cancelled');
-    expect(wrapper.text()).toBe('Cancelled');
+    expect(wrapper.text()).toBe('Cancelado');
     expect(badge('new').find('[data-station]').exists()).toBe(false);
   });
 });

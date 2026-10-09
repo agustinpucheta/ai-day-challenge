@@ -1,4 +1,5 @@
 import type { IssueStatus, Progress } from '@/api/client';
+import { es } from '@/i18n/es';
 
 /** "33.3%" / "100%": one decimal only when the value needs it. */
 export function formatPercent(percent: number): string {
@@ -11,30 +12,30 @@ export function displayPercent(progress: Progress): number | null {
   return Math.min(100, Math.max(0, progress.percent));
 }
 
-/** "7 of 12 done · 3 in progress · 2 pending · 1 cancelled": zero segments are omitted. */
+/** "7 de 12 terminados · 3 en curso · 2 pendientes · 1 cancelado": zero segments are omitted. */
 export function countsText(progress: Progress): string {
-  const parts = [`${progress.completed} of ${progress.total} done`];
-  if (progress.inProgress > 0) parts.push(`${progress.inProgress} in progress`);
-  if (progress.pending > 0) parts.push(`${progress.pending} pending`);
-  if (progress.cancelled > 0) parts.push(`${progress.cancelled} cancelled`);
+  const parts = [es.progress.counts(progress.completed, progress.total)];
+  if (progress.inProgress > 0) parts.push(es.progress.inProgress(progress.inProgress));
+  if (progress.pending > 0) parts.push(es.progress.pending(progress.pending));
+  if (progress.cancelled > 0) parts.push(es.progress.cancelled(progress.cancelled));
   return parts.join(' · ');
 }
 
 /** Available items are a subset of pending (D-025), shown as their own line. */
 export function availableText(count: number): string {
-  return `${count} available to take`;
+  return es.progress.available(count);
 }
 
 export function unknownText(count: number): string {
-  return `${count} ${count === 1 ? 'item' : 'items'} with unknown status`;
+  return es.progress.unknown(count);
 }
 
 /** Copy for a progress that has no percentage. Never a number. */
 export function noProgressText(progress: Progress): string {
-  if (progress.state === 'all_cancelled') return 'All items cancelled';
-  if (progress.basis === 'children') return 'No children yet';
-  if (progress.basis === 'subtasks') return 'No subtasks yet';
-  return 'Progress does not apply';
+  if (progress.state === 'all_cancelled') return es.progress.allCancelled;
+  if (progress.basis === 'children') return es.progress.noChildren;
+  if (progress.basis === 'subtasks') return es.progress.noSubtasks;
+  return es.progress.notApplicable;
 }
 
 /** The six forms a station can take, in the order they are drawn along a line. */

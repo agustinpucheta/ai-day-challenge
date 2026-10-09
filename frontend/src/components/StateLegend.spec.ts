@@ -16,19 +16,19 @@ describe('StateLegend', () => {
       'unknown',
     ]);
     expect(items.map((li) => li.text())).toEqual([
-      'Done',
-      'In progress',
-      'Pending',
-      'Available to take',
-      'Cancelled',
-      'Unknown status',
+      'Terminado',
+      'En curso',
+      'Pendiente',
+      'Disponible para tomar',
+      'Cancelado',
+      'Estado desconocido',
     ]);
   });
 
   it('is a labelled list with one decorative station per entry', () => {
     const wrapper = mount(StateLegend);
 
-    expect(wrapper.get('ul').attributes('aria-label')).toBe('Station legend');
+    expect(wrapper.get('ul').attributes('aria-label')).toBe('Leyenda de estados');
     expect(wrapper.findAll('svg[aria-hidden="true"]')).toHaveLength(6);
   });
 });

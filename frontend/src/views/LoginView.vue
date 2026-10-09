@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useSession } from '@/auth/session';
 import AuthShell from '@/components/AuthShell.vue';
 import ErrorAlert from '@/components/ErrorAlert.vue';
+import { es } from '@/i18n/es';
 import { sanitizeRedirect } from '@/router/redirect';
 
 const route = useRoute();
@@ -35,14 +36,14 @@ async function onSubmit(): Promise<void> {
 
 <template>
   <AuthShell title-id="login-title">
-    <h1 id="login-title">Sign in</h1>
+    <h1 id="login-title">{{ es.auth.signIn }}</h1>
     <p v-if="justRegistered" class="alert alert--success" role="status">
-      Account created. You can sign in now.
+      {{ es.auth.accountCreated }}
     </p>
 
     <form class="stack" novalidate @submit.prevent="onSubmit">
       <div class="field">
-        <label for="login-email">Email</label>
+        <label for="login-email">{{ es.auth.email }}</label>
         <input
           id="login-email"
           v-model="email"
@@ -53,7 +54,7 @@ async function onSubmit(): Promise<void> {
         />
       </div>
       <div class="field">
-        <label for="login-password">Password</label>
+        <label for="login-password">{{ es.auth.password }}</label>
         <input
           id="login-password"
           v-model="password"
@@ -67,12 +68,13 @@ async function onSubmit(): Promise<void> {
       <ErrorAlert v-if="error" :error="error" />
 
       <button type="submit" class="button button--primary" :disabled="submitting">
-        {{ submitting ? 'Signing in…' : 'Sign in' }}
+        {{ submitting ? es.auth.signingIn : es.auth.signIn }}
       </button>
     </form>
 
     <p class="muted">
-      No account yet? <RouterLink :to="{ name: 'register' }">Create one</RouterLink>
+      {{ es.auth.noAccount }}
+      <RouterLink :to="{ name: 'register' }">{{ es.auth.createOne }}</RouterLink>
     </p>
   </AuthShell>
 </template>

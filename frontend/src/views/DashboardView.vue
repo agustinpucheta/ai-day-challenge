@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { es } from '@/i18n/es';
 import IssueErrorState from '@/components/IssueErrorState.vue';
 import IssueSearchForm from '@/components/IssueSearchForm.vue';
 import JiraConnectionPanel from '@/components/JiraConnectionPanel.vue';
@@ -52,12 +53,12 @@ const refreshing = computed(() => state.value.kind === 'loaded' && state.value.r
 <template>
   <section class="page" aria-labelledby="dashboard-title" :aria-busy="busy">
     <header class="page-header">
-      <h1 id="dashboard-title">My tracking</h1>
+      <h1 id="dashboard-title">{{ es.nav.tracking }}</h1>
       <div class="page-header__actions">
         <LastFetched
           v-if="state.kind === 'loaded'"
           :fetched-at="state.fetchedAt"
-          label="Last updated"
+          :label="es.dates.lastUpdated"
         />
         <button
           type="button"
@@ -65,7 +66,7 @@ const refreshing = computed(() => state.value.kind === 'loaded' && state.value.r
           :disabled="state.kind !== 'loaded' || state.refreshing"
           @click="list.refresh()"
         >
-          {{ refreshing ? 'Refreshing…' : 'Refresh' }}
+          {{ refreshing ? es.common.refreshing : es.common.refresh }}
         </button>
       </div>
     </header>
@@ -73,7 +74,7 @@ const refreshing = computed(() => state.value.kind === 'loaded' && state.value.r
     <div class="toolbar">
       <IssueSearchForm
         input-id="dashboard-search"
-        label="Search by text or issue key"
+        :label="es.search.labelDashboard"
         @search="onSearch"
       />
     </div>
@@ -89,7 +90,7 @@ const refreshing = computed(() => state.value.kind === 'loaded' && state.value.r
 
     <div class="stack" aria-live="polite">
       <div v-if="state.kind === 'loading'" class="grid grid--cards" data-testid="tracking-skeleton">
-        <p class="sr-only">Loading tracked issues…</p>
+        <p class="sr-only">{{ es.tracking.loadingList }}</p>
         <div v-for="n in 4" :key="n" class="skeleton-card" aria-hidden="true">
           <span class="skeleton skeleton--title"></span>
           <span class="skeleton skeleton--line"></span>
@@ -108,9 +109,9 @@ const refreshing = computed(() => state.value.kind === 'loaded' && state.value.r
       <div v-else-if="state.items.length === 0" class="empty-state empty-state--line">
         <span class="empty-state__line" aria-hidden="true"></span>
         <p>
-          You're not tracking any issues yet.
-          <RouterLink :to="{ name: 'issues' }">Search for an epic or story</RouterLink> and press
-          Track to follow its progress here.
+          {{ es.tracking.empty.before }}
+          <RouterLink :to="{ name: 'issues' }">{{ es.tracking.empty.link }}</RouterLink>
+          {{ es.tracking.empty.after }}
         </p>
       </div>
 
@@ -118,9 +119,11 @@ const refreshing = computed(() => state.value.kind === 'loaded' && state.value.r
         <div v-if="wideFailure" class="alert alert--error" role="alert">
           <strong>{{ wideFailure.title }}</strong>
           <p>{{ wideFailure.text }}</p>
-          <p>No progress is shown for these issues because Jira could not be read.</p>
+          <p>{{ es.tracking.jiraUnreadable }}</p>
           <p>
-            <button type="button" class="button" @click="list.refresh()">Try again</button>
+            <button type="button" class="button" @click="list.refresh()">
+              {{ es.common.retry }}
+            </button>
           </p>
         </div>
 

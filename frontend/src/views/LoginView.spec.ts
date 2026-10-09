@@ -42,7 +42,9 @@ describe('LoginView', () => {
     await submit(wrapper);
 
     expect(calls[0]?.body).toEqual({ email: 'ana@example.com', password: 'a-strong-password' });
-    expect(wrapper.get('[role="alert"]').text()).toContain('Invalid email or password');
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      'El correo o la contraseña no son correctos',
+    );
     expect(router.currentRoute.value.name).toBe('login');
   });
 

@@ -142,13 +142,13 @@ describe('useTracking', () => {
     });
 
     it.each([
-      [409, 'TRACKING_LIMIT_REACHED', 'You can track up to 50 issues'],
-      [404, 'ISSUE_NOT_FOUND_OR_INACCESSIBLE', 'Issue not found or no access'],
-      [409, 'JIRA_NOT_CONNECTED', 'Jira is not configured'],
-      [424, 'JIRA_REAUTH_REQUIRED', 'Jira rejected the API token'],
-      [424, 'JIRA_FORBIDDEN', 'Jira denied access'],
-      [429, 'JIRA_RATE_LIMITED', 'Retry in 9 seconds'],
-      [503, 'JIRA_UNAVAILABLE', 'Jira is unavailable'],
+      [409, 'TRACKING_LIMIT_REACHED', 'Podés seguir hasta 50 issues'],
+      [404, 'ISSUE_NOT_FOUND_OR_INACCESSIBLE', 'Issue no encontrado o sin acceso'],
+      [409, 'JIRA_NOT_CONNECTED', 'Jira no está configurado'],
+      [424, 'JIRA_REAUTH_REQUIRED', 'Jira rechazó el token de API'],
+      [424, 'JIRA_FORBIDDEN', 'Jira denegó el acceso'],
+      [429, 'JIRA_RATE_LIMITED', 'Reintentá en 9 segundos'],
+      [503, 'JIRA_UNAVAILABLE', 'Jira no está disponible'],
     ])('leaves the key untracked and explains %i %s', async (status, code, message) => {
       stubFetch({ [ADD]: () => failure(status, code, { 'Retry-After': '9' }) });
       const tracking = useTracking();
@@ -171,7 +171,7 @@ describe('useTracking', () => {
       const tracking = useTracking();
 
       await tracking.track('MASIN-1');
-      expect(tracking.errorFor('MASIN-1')).toContain('Cannot reach the server');
+      expect(tracking.errorFor('MASIN-1')).toContain('No se pudo conectar con el servidor');
 
       await tracking.track('MASIN-1');
       expect(tracking.errorFor('MASIN-1')).toBeNull();
@@ -214,7 +214,7 @@ describe('useTracking', () => {
       await expect(tracking.untrack('MASIN-1')).resolves.toBe(false);
 
       expect(tracking.isTracked('MASIN-1')).toBe(true);
-      expect(tracking.errorFor('MASIN-1')).toContain('Jira is unavailable');
+      expect(tracking.errorFor('MASIN-1')).toContain('Jira no está disponible');
     });
 
     it('does nothing for a key it does not know', async () => {

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useSession } from '@/auth/session';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { createAuthGuard } from './guard';
+import { documentTitle } from './title';
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -47,3 +48,6 @@ export const router = createRouter({
 });
 
 router.beforeEach(createAuthGuard(() => useSession().loadSession()));
+router.afterEach((to) => {
+  document.title = documentTitle(to.name, to.params);
+});

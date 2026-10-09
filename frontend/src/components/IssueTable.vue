@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import type { IssueStatus } from '@/api/client';
+import { es } from '@/i18n/es';
 import AvailableOnlyToggle from './AvailableOnlyToggle.vue';
 import OpenInJira from './OpenInJira.vue';
 import StatusBadge from './StatusBadge.vue';
@@ -37,7 +38,7 @@ defineSlots<{ actions?: (props: { issue: IssueRow }) => unknown }>();
   <div class="stack">
     <AvailableOnlyToggle v-if="availableFilter" v-model="onlyAvailable" />
     <p v-if="availableFilter && onlyAvailable && rows.length === 0" class="empty-state">
-      No available items
+      {{ es.badges.noAvailable }}
     </p>
     <div v-else class="table-wrap" role="region" :aria-label="caption" tabindex="0">
       <table class="table">
@@ -48,11 +49,11 @@ defineSlots<{ actions?: (props: { issue: IssueRow }) => unknown }>();
         </caption>
         <thead>
           <tr>
-            <th scope="col">Key</th>
-            <th scope="col">Summary</th>
-            <th v-if="showType" scope="col">Type</th>
-            <th scope="col">Status</th>
-            <th scope="col">Jira</th>
+            <th scope="col">{{ es.table.key }}</th>
+            <th scope="col">{{ es.table.summary }}</th>
+            <th v-if="showType" scope="col">{{ es.table.type }}</th>
+            <th scope="col">{{ es.table.status }}</th>
+            <th scope="col">{{ es.common.jira }}</th>
             <th v-if="$slots.actions" scope="col">{{ actionsLabel }}</th>
           </tr>
         </thead>

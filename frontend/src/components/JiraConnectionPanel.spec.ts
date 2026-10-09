@@ -11,7 +11,7 @@ describe('JiraConnectionPanel', () => {
   it('renders loading as a busy region', () => {
     const wrapper = render({ kind: 'loading' });
 
-    expect(wrapper.text()).toContain('Loading connection status');
+    expect(wrapper.text()).toContain('Cargando el estado de la conexión');
     expect(wrapper.get('section').attributes('aria-busy')).toBe('true');
     expect(wrapper.find('button').exists()).toBe(false);
   });
@@ -19,18 +19,18 @@ describe('JiraConnectionPanel', () => {
   it('explains how to configure the backend without showing any value', () => {
     const wrapper = render({ kind: 'not_configured' });
 
-    expect(wrapper.text()).toContain('Not configured');
-    for (const name of ['JIRA_URL', 'JIRA_USERNAME', 'JIRA_API_TOKEN', 'restart the backend']) {
+    expect(wrapper.text()).toContain('No configurado');
+    for (const name of ['JIRA_URL', 'JIRA_USERNAME', 'JIRA_API_TOKEN', 'reiniciá el backend']) {
       expect(wrapper.text()).toContain(name);
     }
-    expect(wrapper.text()).not.toContain('Connected');
+    expect(wrapper.text()).not.toContain('Conectado');
   });
 
   it('offers a manual verification when configured but not verified', async () => {
     const wrapper = render({ kind: 'configured', siteUrl: 'https://acme.atlassian.net' });
 
-    expect(wrapper.text()).toContain('Configured, not verified');
-    expect(wrapper.get('button').text()).toBe('Verify connection');
+    expect(wrapper.text()).toContain('Configurado, sin verificar');
+    expect(wrapper.get('button').text()).toBe('Verificar conexión');
     await wrapper.get('button').trigger('click');
     expect(wrapper.emitted('verify')).toHaveLength(1);
   });
@@ -38,7 +38,7 @@ describe('JiraConnectionPanel', () => {
   it('renders verifying as busy', () => {
     const wrapper = render({ kind: 'verifying', siteUrl: 'https://acme.atlassian.net' });
 
-    expect(wrapper.text()).toContain('Verifying');
+    expect(wrapper.text()).toContain('Verificando');
     expect(wrapper.get('section').attributes('aria-busy')).toBe('true');
   });
 
@@ -50,10 +50,10 @@ describe('JiraConnectionPanel', () => {
       checkedAt: '2026-10-09T12:00:00.000Z',
     });
 
-    expect(wrapper.text()).toContain('Connected');
+    expect(wrapper.text()).toContain('Conectado');
     expect(wrapper.text()).toContain('Ada Lovelace');
     expect(wrapper.text()).toContain('https://acme.atlassian.net');
-    expect(wrapper.text()).toContain('Last checked');
+    expect(wrapper.text()).toContain('Última verificación');
     expect(wrapper.get('time').attributes('datetime')).toBe('2026-10-09T12:00:00.000Z');
     expect(wrapper.get('section').attributes('aria-busy')).toBe('false');
     await wrapper.get('button').trigger('click');
@@ -61,17 +61,17 @@ describe('JiraConnectionPanel', () => {
   });
 
   it.each<[JiraErrorReason, string]>([
-    ['reauth_required', 'Jira rejected the API token'],
-    ['forbidden', 'Jira denied access'],
-    ['rate_limited', 'Jira is rate limiting requests'],
-    ['unavailable', 'Jira is unavailable'],
-    ['network', 'Cannot reach the server'],
-    ['unknown', 'Something went wrong'],
+    ['reauth_required', 'Jira rechazó el token de API'],
+    ['forbidden', 'Jira denegó el acceso'],
+    ['rate_limited', 'Jira está limitando los pedidos'],
+    ['unavailable', 'Jira no está disponible'],
+    ['network', 'No se pudo conectar con el servidor'],
+    ['unknown', 'Algo salió mal'],
   ])('renders the %s error with its own message', (reason, title) => {
     const wrapper = render({ kind: 'error', reason, retry: 'verify', siteUrl: null });
 
     expect(wrapper.get('[role="alert"]').text()).toContain(title);
-    expect(wrapper.text()).not.toContain('Connected');
+    expect(wrapper.text()).not.toContain('Conectado');
   });
 
   it('tells the user how to replace a rejected token', () => {
@@ -83,11 +83,11 @@ describe('JiraConnectionPanel', () => {
     });
 
     expect(wrapper.text()).toContain(
-      'Create a new token at id.atlassian.com → Security → API tokens, update JIRA_API_TOKEN and restart the backend.',
+      'Creá un token nuevo en id.atlassian.com → Seguridad → Tokens de API, actualizá JIRA_API_TOKEN y reiniciá el backend.',
     );
   });
 
-  it('shows the retry-after seconds only for rate limiting', () => {
+  it('shows the retry-after segundos only for rate limiting', () => {
     const limited = render({
       kind: 'error',
       reason: 'rate_limited',
@@ -103,8 +103,8 @@ describe('JiraConnectionPanel', () => {
       retryAfterSeconds: 42,
     });
 
-    expect(limited.text()).toContain('Retry in 42 seconds');
-    expect(unavailable.text()).not.toContain('Retry in');
+    expect(limited.text()).toContain('Reintentá en 42 segundos');
+    expect(unavailable.text()).not.toContain('Reintentá en');
   });
 
   it('retries by re-verifying or by reloading depending on what failed', async () => {

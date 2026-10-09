@@ -37,12 +37,12 @@ describe('TrackToggle', () => {
     expect(wrapper.get('button').attributes('disabled')).toBeUndefined();
   });
 
-  it('offers Stop tracking for an issue that is already followed, even if its Jira read failed', async () => {
+  it('offers Untrack for an issue that is already followed, even if its Jira read failed', async () => {
     const { wrapper } = await mountToggle({
       [LIST]: () => jsonResponse(200, listBody([errorItem('MASIN-1')])),
     });
 
-    expect(label(wrapper)).toBe('Stop tracking MASIN-1');
+    expect(label(wrapper)).toBe('Untrack MASIN-1');
   });
 
   it('tracks: busy while pending, tracked only after the server confirms', async () => {
@@ -57,13 +57,13 @@ describe('TrackToggle', () => {
 
     await wrapper.get('button').trigger('click');
 
-    expect(label(wrapper)).toBe('Tracking… MASIN-1');
+    expect(label(wrapper)).toBe('Siguiendo… MASIN-1');
     expect(wrapper.get('button').attributes('disabled')).toBeDefined();
     release(jsonResponse(201, entry));
     await flushPromises();
 
     expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ issueKey: 'MASIN-1' });
-    expect(label(wrapper)).toBe('Stop tracking MASIN-1');
+    expect(label(wrapper)).toBe('Untrack MASIN-1');
   });
 
   it('treats an already followed issue (200) as tracked', async () => {
@@ -75,7 +75,7 @@ describe('TrackToggle', () => {
     await wrapper.get('button').trigger('click');
     await flushPromises();
 
-    expect(label(wrapper)).toBe('Stop tracking MASIN-1');
+    expect(label(wrapper)).toBe('Untrack MASIN-1');
     expect(wrapper.find('[role="alert"]').exists()).toBe(false);
   });
 
@@ -88,16 +88,16 @@ describe('TrackToggle', () => {
     await wrapper.get('button').trigger('click');
     await flushPromises();
 
-    expect(wrapper.get('[role="alert"]').text()).toContain('You can track up to 50 issues');
+    expect(wrapper.get('[role="alert"]').text()).toContain('Podés seguir hasta 50 issues');
     expect(label(wrapper)).toBe('Track MASIN-1');
     expect(wrapper.get('button').attributes('disabled')).toBeUndefined();
   });
 
   it.each([
-    [404, 'ISSUE_NOT_FOUND_OR_INACCESSIBLE', 'Issue not found or no access'],
-    [409, 'JIRA_NOT_CONNECTED', 'Jira is not configured'],
-    [424, 'JIRA_REAUTH_REQUIRED', 'Jira rejected the API token'],
-    [503, 'JIRA_UNAVAILABLE', 'Jira is unavailable'],
+    [404, 'ISSUE_NOT_FOUND_OR_INACCESSIBLE', 'Issue no encontrado o sin acceso'],
+    [409, 'JIRA_NOT_CONNECTED', 'Jira no está configurado'],
+    [424, 'JIRA_REAUTH_REQUIRED', 'Jira rechazó el token de API'],
+    [503, 'JIRA_UNAVAILABLE', 'Jira no está disponible'],
   ])('explains %i %s and leaves the issue untracked', async (status, code, text) => {
     const { wrapper } = await mountToggle({
       [LIST]: () => jsonResponse(200, listBody([])),
@@ -122,7 +122,7 @@ describe('TrackToggle', () => {
     await wrapper.get('button').trigger('click');
     await flushPromises();
 
-    expect(label(wrapper)).toBe('Stop tracking MASIN-1');
+    expect(label(wrapper)).toBe('Untrack MASIN-1');
   });
 
   it('untracks: stays tracked while pending and until the server confirms', async () => {
@@ -137,7 +137,7 @@ describe('TrackToggle', () => {
 
     await wrapper.get('button').trigger('click');
 
-    expect(label(wrapper)).toBe('Removing… MASIN-1');
+    expect(label(wrapper)).toBe('Quitando… MASIN-1');
     expect(wrapper.get('button').attributes('disabled')).toBeDefined();
     release(new Response(null, { status: 204 }));
     await flushPromises();
@@ -154,7 +154,7 @@ describe('TrackToggle', () => {
     await wrapper.get('button').trigger('click');
     await flushPromises();
 
-    expect(label(wrapper)).toBe('Stop tracking MASIN-1');
-    expect(wrapper.get('[role="alert"]').text()).toContain('Jira is unavailable');
+    expect(label(wrapper)).toBe('Untrack MASIN-1');
+    expect(wrapper.get('[role="alert"]').text()).toContain('Jira no está disponible');
   });
 });

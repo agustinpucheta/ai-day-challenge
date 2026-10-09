@@ -1,3 +1,4 @@
+import { es } from '@/i18n/es';
 import { ApiError, ClientErrorCode, type ValidationDetail } from './errors';
 import type { components, paths } from './schema';
 
@@ -121,11 +122,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
         body: body === undefined ? undefined : JSON.stringify(body),
       });
     } catch {
-      throw new ApiError(
-        0,
-        ClientErrorCode.NETWORK_ERROR,
-        'Cannot reach the server. Check your connection and try again.',
-      );
+      throw new ApiError(0, ClientErrorCode.NETWORK_ERROR, es.client.network);
     }
 
     if (response.status === 204) {
@@ -149,14 +146,14 @@ export function createApiClient(options: ApiClientOptions = {}) {
       throw new ApiError(
         response.status,
         ClientErrorCode.UNEXPECTED_RESPONSE,
-        `The server returned an unexpected response (HTTP ${response.status}).`,
+        es.client.unexpectedHttp(response.status),
       );
     }
     if (payload === undefined) {
       throw new ApiError(
         response.status,
         ClientErrorCode.UNEXPECTED_RESPONSE,
-        'The server returned an unexpected response.',
+        es.client.unexpected,
       );
     }
     return payload as T;

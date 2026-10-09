@@ -2,11 +2,12 @@
 import { computed, onMounted, ref } from 'vue';
 import { api, type Preferences } from '@/api/client';
 import ErrorAlert from '@/components/ErrorAlert.vue';
+import { es } from '@/i18n/es';
 import { diffPreferences, toForm, type PreferencesForm } from '@/preferences/diff';
 
 const WEEK_START_OPTIONS: { value: Preferences['weekStartsOn']; label: string }[] = [
-  { value: 'monday', label: 'Monday' },
-  { value: 'sunday', label: 'Sunday' },
+  { value: 'monday', label: es.settings.monday },
+  { value: 'sunday', label: es.settings.sunday },
 ];
 
 const timezones: string[] =
@@ -62,11 +63,11 @@ onMounted(load);
 <template>
   <section class="page" aria-labelledby="settings-title">
     <header class="page-header">
-      <h1 id="settings-title">Settings</h1>
+      <h1 id="settings-title">{{ es.settings.title }}</h1>
     </header>
 
     <div v-if="loading" class="card form-card stack" aria-busy="true">
-      <p class="muted">Loading preferences…</p>
+      <p class="muted">{{ es.settings.loading }}</p>
       <div aria-hidden="true" class="stack">
         <span class="skeleton skeleton--title"></span>
         <span class="skeleton skeleton--field"></span>
@@ -76,14 +77,16 @@ onMounted(load);
 
     <div v-else-if="loadError" class="card form-card stack">
       <ErrorAlert :error="loadError" />
-      <div><button type="button" class="button" @click="load">Try again</button></div>
+      <div>
+        <button type="button" class="button" @click="load">{{ es.common.retry }}</button>
+      </div>
     </div>
 
     <form v-else-if="form" class="card form-card stack" novalidate @submit.prevent="onSubmit">
-      <h2 class="card__title">Dashboard preferences</h2>
+      <h2 class="card__title">{{ es.settings.heading }}</h2>
 
       <div class="field">
-        <label for="pref-week-start">Week starts on</label>
+        <label for="pref-week-start">{{ es.settings.weekStart }}</label>
         <select id="pref-week-start" v-model="form.weekStartsOn">
           <option v-for="option in WEEK_START_OPTIONS" :key="option.value" :value="option.value">
             {{ option.label }}
@@ -92,46 +95,48 @@ onMounted(load);
       </div>
 
       <div class="field">
-        <label for="pref-timezone">Time zone</label>
+        <label for="pref-timezone">{{ es.settings.timezone }}</label>
         <input
           id="pref-timezone"
           v-model="form.timezone"
           type="text"
           list="pref-timezone-options"
           autocomplete="off"
-          placeholder="e.g. America/Argentina/Buenos_Aires"
+          :placeholder="es.settings.timezonePlaceholder"
           aria-describedby="pref-timezone-hint"
         />
         <datalist id="pref-timezone-options">
           <option v-for="zone in timezones" :key="zone" :value="zone" />
         </datalist>
-        <p id="pref-timezone-hint" class="hint">IANA time zone. Leave empty to clear it.</p>
+        <p id="pref-timezone-hint" class="hint">
+          {{ es.settings.timezoneHint }}
+        </p>
       </div>
 
       <fieldset class="field">
-        <legend>Show on the dashboard</legend>
+        <legend>{{ es.settings.show }}</legend>
         <label class="checkbox" for="pref-show-weekly-sp">
           <input id="pref-show-weekly-sp" v-model="form.showWeeklySp" type="checkbox" />
-          Weekly story points
+          {{ es.settings.weeklySp }}
         </label>
         <label class="checkbox" for="pref-show-subtasks">
           <input id="pref-show-subtasks" v-model="form.showSubtasks" type="checkbox" />
-          Subtasks
+          {{ es.settings.subtasks }}
         </label>
         <label class="checkbox" for="pref-show-dependencies">
           <input id="pref-show-dependencies" v-model="form.showDependencies" type="checkbox" />
-          Dependencies
+          {{ es.settings.dependencies }}
         </label>
       </fieldset>
 
       <ErrorAlert v-if="saveError" :error="saveError" />
       <p v-if="saved && !hasChanges" class="alert alert--success" role="status">
-        Preferences saved.
+        {{ es.settings.saved }}
       </p>
 
       <div class="form-actions">
         <button type="submit" class="button button--primary" :disabled="!hasChanges || saving">
-          {{ saving ? 'Saving…' : 'Save changes' }}
+          {{ saving ? es.settings.saving : es.settings.save }}
         </button>
       </div>
     </form>

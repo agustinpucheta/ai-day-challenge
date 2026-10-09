@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSession } from '@/auth/session';
 import ErrorAlert from '@/components/ErrorAlert.vue';
+import { es } from '@/i18n/es';
 
 const router = useRouter();
 const route = useRoute();
@@ -42,16 +43,16 @@ async function onLogout(): Promise<void> {
             <circle cx="16" cy="6" r="3" />
             <circle cx="28" cy="6" r="3" />
           </svg>
-          <span>Jira Dashboard</span>
+          <span>{{ es.app.name }}</span>
         </RouterLink>
-        <nav aria-label="Main" class="app-header__nav">
-          <RouterLink :to="{ name: 'home' }">My tracking</RouterLink>
+        <nav :aria-label="es.nav.label" class="app-header__nav">
+          <RouterLink :to="{ name: 'home' }">{{ es.nav.tracking }}</RouterLink>
           <RouterLink
             :to="{ name: 'issues' }"
             :class="{ 'router-link-exact-active': isIssueDetail }"
-            >Issues</RouterLink
+            >{{ es.nav.issues }}</RouterLink
           >
-          <RouterLink :to="{ name: 'settings' }">Settings</RouterLink>
+          <RouterLink :to="{ name: 'settings' }">{{ es.nav.settings }}</RouterLink>
         </nav>
         <div v-if="user" class="app-header__user">
           <span class="app-header__identity">
@@ -64,7 +65,7 @@ async function onLogout(): Promise<void> {
             :disabled="loggingOut"
             @click="onLogout"
           >
-            {{ loggingOut ? 'Signing out…' : 'Sign out' }}
+            {{ loggingOut ? es.nav.signingOut : es.nav.signOut }}
           </button>
         </div>
       </div>

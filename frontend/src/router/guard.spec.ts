@@ -51,7 +51,7 @@ describe('auth route guard', () => {
 
   it('shows the unavailable page when the session cannot be checked', async () => {
     const route = await navigate(async () => {
-      throw new ApiError(0, 'NETWORK_ERROR', 'Cannot reach the server.');
+      throw new ApiError(0, 'NETWORK_ERROR', 'No se pudo conectar con el servidor.');
     }, '/settings');
 
     expect(route.name).toBe('unavailable');

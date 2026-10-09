@@ -40,16 +40,16 @@ describe('EpicChildrenTable available filter', () => {
   it('shows the per-story available count as a chip', () => {
     const chips = mountTable().findAll('[data-testid="available-chip"]');
 
-    expect(chips.map((chip) => chip.text())).toEqual(['2 available']);
+    expect(chips.map((chip) => chip.text())).toEqual(['2 disponibles']);
   });
 
-  it('filters to available rows when "Only available" is checked', async () => {
+  it('filters to available rows when "Solo disponibles" is checked', async () => {
     const wrapper = mountTable();
 
     await wrapper.get('input[type="checkbox"]').setValue(true);
 
     expect(keys(wrapper)).toEqual(['MASIN-1']);
-    expect(wrapper.text()).toContain('Only available');
+    expect(wrapper.text()).toContain('Solo disponibles');
   });
 
   it('explains an empty filtered list', async () => {
@@ -58,6 +58,6 @@ describe('EpicChildrenTable available filter', () => {
     await wrapper.get('input[type="checkbox"]').setValue(true);
 
     expect(wrapper.find('table').exists()).toBe(false);
-    expect(wrapper.text()).toContain('No available items');
+    expect(wrapper.text()).toContain('No hay ítems disponibles');
   });
 });

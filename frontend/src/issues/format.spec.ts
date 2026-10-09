@@ -6,28 +6,45 @@ import { validateQuery } from './query';
 
 describe('storyPointsDeviation', () => {
   it.each([
-    [5, 3, '+2 vs planned'],
-    [2, 5, '-3 vs planned'],
-    [3.5, 3, '+0.5 vs planned'],
+    [5, 3, '+2 vs planificados'],
+    [2, 5, '-3 vs planificados'],
+    [3.5, 3, '+0.5 vs planificados'],
     [3, 3, null],
     [null, 3, null],
     [3, null, null],
     [null, null, null],
-  ])('final %s vs planned %s -> %s', (final, planned, expected) => {
+  ])('final %s vs planificados %s -> %s', (final, planned, expected) => {
     expect(storyPointsDeviation(final, planned)).toBe(expected);
   });
 });
 
 describe('formatDateTime', () => {
-  it('formats a valid instant and rejects garbage', () => {
-    expect(formatDateTime('2026-10-09T12:00:00.000Z')?.iso).toBe('2026-10-09T12:00:00.000Z');
+  it('formats a valid instant as es-AR day, month, year and 24h time', () => {
+    const result = formatDateTime('2026-10-09T19:39:00.000Z', 'America/Argentina/Buenos_Aires');
+
+    expect(result?.iso).toBe('2026-10-09T19:39:00.000Z');
+    expect(result?.label).toMatch(/^9 de oct.? de 2026,? 16:39$/);
+  });
+
+  it('uses 24 hour time, never am/pm', () => {
+    const label = formatDateTime('2026-10-09T21:05:00.000Z', 'UTC')?.label ?? '';
+
+    expect(label).toContain('21:05');
+    expect(label).not.toMatch(/[ap].? ?m/i);
+  });
+
+  it('rejects garbage', () => {
     expect(formatDateTime('not a date')).toBeNull();
   });
 });
 
 describe('formatTime', () => {
-  it('formats a valid instant and rejects garbage', () => {
-    expect(formatTime('2026-10-09T12:00:00.000Z')).toMatch(/\d/);
+  it('formats a valid instant as 24h hours and minutes', () => {
+    expect(formatTime('2026-10-09T19:39:00.000Z', 'America/Argentina/Buenos_Aires')).toBe('16:39');
+    expect(formatTime('2026-10-09T00:05:00.000Z', 'UTC')).toBe('00:05');
+  });
+
+  it('rejects garbage', () => {
     expect(formatTime('not a date')).toBeNull();
   });
 });
@@ -53,10 +70,10 @@ describe('progress formatting', () => {
   });
 
   it('describes counts and the absence of progress', () => {
-    expect(countsText(progress())).toBe('7 of 12 done · 3 in progress · 2 pending · 1 cancelled');
-    expect(noProgressText(progress({ state: 'none', basis: 'none' }))).toBe(
-      'Progress does not apply',
+    expect(countsText(progress())).toBe(
+      '7 de 12 terminados · 3 en curso · 2 pendientes · 1 cancelado',
     );
+    expect(noProgressText(progress({ state: 'none', basis: 'none' }))).toBe('El avance no aplica');
   });
 });
 

@@ -35,7 +35,7 @@ describe('RegisterView', () => {
 
     const { wrapper } = await mountRegister();
 
-    expect(wrapper.get('[role="alert"]').text()).toContain('Registration is disabled');
+    expect(wrapper.get('[role="alert"]').text()).toContain('El registro está deshabilitado');
     expect(wrapper.find('form').exists()).toBe(false);
   });
 
