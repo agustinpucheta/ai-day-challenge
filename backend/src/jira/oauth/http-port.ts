@@ -9,7 +9,7 @@ export interface HttpResult {
 
 export interface HttpPort {
   /** Rejects on network failure or timeout. A non-2xx status is a normal result. */
-  postJson(url: string, body: unknown): Promise<HttpResult>;
+  postJson(url: string, body: unknown, headers?: Record<string, string>): Promise<HttpResult>;
   getJson(url: string, headers: Record<string, string>): Promise<HttpResult>;
 }
 
@@ -21,10 +21,10 @@ export const HTTP_TIMEOUT_MS = 10_000;
 export class FetchHttpPort implements HttpPort {
   constructor(private readonly timeoutMs: number = HTTP_TIMEOUT_MS) {}
 
-  postJson(url: string, body: unknown): Promise<HttpResult> {
+  postJson(url: string, body: unknown, headers: Record<string, string> = {}): Promise<HttpResult> {
     return this.send(url, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      headers: { 'content-type': 'application/json', accept: 'application/json', ...headers },
       body: JSON.stringify(body),
     });
   }

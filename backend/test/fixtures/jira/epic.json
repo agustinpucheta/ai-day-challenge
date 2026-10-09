@@ -1,0 +1,37 @@
+{
+  "expand": "operations",
+  "id": "1",
+  "self": "https://example.atlassian.net/rest/api/3/issue/1",
+  "key": "DEMO-1",
+  "fields": {
+    "summary": "Demo epic",
+    "issuetype": {
+      "id": "10000",
+      "name": "Epic",
+      "subtask": false,
+      "hierarchyLevel": 1
+    },
+    "status": {
+      "id": "3",
+      "name": "In progress",
+      "statusCategory": {
+        "id": 1,
+        "key": "indeterminate",
+        "name": "indeterminate"
+      }
+    },
+    "project": {
+      "id": "10100",
+      "key": "DEMO",
+      "name": "Demo project"
+    },
+    "resolution": null,
+    "created": "2026-09-01T10:00:00.000-0300",
+    "updated": "2026-10-01T10:00:00.000-0300",
+    "issuelinks": [],
+    "subtasks": [],
+    "customfield_10013": null,
+    "customfield_10023": 0,
+    "customfield_10204": null
+  }
+}

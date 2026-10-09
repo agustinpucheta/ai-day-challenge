@@ -1,0 +1,37 @@
+{
+  "expand": "operations",
+  "id": "12",
+  "self": "https://example.atlassian.net/rest/api/3/issue/12",
+  "key": "DEMO-12",
+  "fields": {
+    "summary": "Status cancelled",
+    "issuetype": {
+      "id": "10002",
+      "name": "Task",
+      "subtask": false,
+      "hierarchyLevel": 0
+    },
+    "status": {
+      "id": "10000",
+      "name": "Cancelled",
+      "statusCategory": {
+        "id": 1,
+        "key": "done",
+        "name": "done"
+      }
+    },
+    "project": {
+      "id": "10100",
+      "key": "DEMO",
+      "name": "Demo project"
+    },
+    "resolution": null,
+    "created": "2026-09-01T10:00:00.000-0300",
+    "updated": "2026-10-01T10:00:00.000-0300",
+    "issuelinks": [],
+    "subtasks": [],
+    "customfield_10013": null,
+    "customfield_10023": null,
+    "customfield_10204": null
+  }
+}

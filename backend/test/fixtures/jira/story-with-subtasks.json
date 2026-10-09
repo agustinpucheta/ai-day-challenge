@@ -1,0 +1,130 @@
+{
+  "expand": "operations",
+  "id": "2",
+  "self": "https://example.atlassian.net/rest/api/3/issue/2",
+  "key": "DEMO-2",
+  "fields": {
+    "summary": "Story with subtasks",
+    "issuetype": {
+      "id": "10001",
+      "name": "Story",
+      "subtask": false,
+      "hierarchyLevel": 0
+    },
+    "status": {
+      "id": "3",
+      "name": "In progress",
+      "statusCategory": {
+        "id": 1,
+        "key": "indeterminate",
+        "name": "indeterminate"
+      }
+    },
+    "project": {
+      "id": "10100",
+      "key": "DEMO",
+      "name": "Demo project"
+    },
+    "resolution": null,
+    "created": "2026-09-01T10:00:00.000-0300",
+    "updated": "2026-10-01T10:00:00.000-0300",
+    "issuelinks": [],
+    "subtasks": [
+      {
+        "id": "3",
+        "key": "DEMO-3",
+        "self": "https://example.atlassian.net/rest/api/3/issue/3",
+        "fields": {
+          "summary": "Subtask done",
+          "status": {
+            "id": "10016",
+            "name": "Closed",
+            "statusCategory": {
+              "id": 1,
+              "key": "done",
+              "name": "done"
+            }
+          },
+          "issuetype": {
+            "id": "10003",
+            "name": "Sub-task",
+            "subtask": true,
+            "hierarchyLevel": -1
+          }
+        }
+      },
+      {
+        "id": "4",
+        "key": "DEMO-4",
+        "self": "https://example.atlassian.net/rest/api/3/issue/4",
+        "fields": {
+          "summary": "Subtask cancelled",
+          "status": {
+            "id": "10000",
+            "name": "Cancelled",
+            "statusCategory": {
+              "id": 1,
+              "key": "done",
+              "name": "done"
+            }
+          },
+          "issuetype": {
+            "id": "10003",
+            "name": "Sub-task",
+            "subtask": true,
+            "hierarchyLevel": -1
+          }
+        }
+      },
+      {
+        "id": "5",
+        "key": "DEMO-5",
+        "self": "https://example.atlassian.net/rest/api/3/issue/5",
+        "fields": {
+          "summary": "Subtask open",
+          "status": {
+            "id": "1",
+            "name": "Open",
+            "statusCategory": {
+              "id": 1,
+              "key": "new",
+              "name": "new"
+            }
+          },
+          "issuetype": {
+            "id": "10003",
+            "name": "Sub-task",
+            "subtask": true,
+            "hierarchyLevel": -1
+          }
+        }
+      }
+    ],
+    "customfield_10013": "DEMO-1",
+    "customfield_10023": 13,
+    "customfield_10204": 8,
+    "parent": {
+      "id": "1",
+      "key": "DEMO-1",
+      "self": "https://example.atlassian.net/rest/api/3/issue/1",
+      "fields": {
+        "summary": "Demo epic",
+        "status": {
+          "id": "3",
+          "name": "In progress",
+          "statusCategory": {
+            "id": 1,
+            "key": "indeterminate",
+            "name": "indeterminate"
+          }
+        },
+        "issuetype": {
+          "id": "10000",
+          "name": "Epic",
+          "subtask": false,
+          "hierarchyLevel": 1
+        }
+      }
+    }
+  }
+}

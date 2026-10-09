@@ -1,0 +1,37 @@
+{
+  "expand": "operations",
+  "id": "9",
+  "self": "https://example.atlassian.net/rest/api/3/issue/9",
+  "key": "DEMO-9",
+  "fields": {
+    "summary": "Status new",
+    "issuetype": {
+      "id": "10002",
+      "name": "Task",
+      "subtask": false,
+      "hierarchyLevel": 0
+    },
+    "status": {
+      "id": "1",
+      "name": "Open",
+      "statusCategory": {
+        "id": 1,
+        "key": "new",
+        "name": "new"
+      }
+    },
+    "project": {
+      "id": "10100",
+      "key": "DEMO",
+      "name": "Demo project"
+    },
+    "resolution": null,
+    "created": "2026-09-01T10:00:00.000-0300",
+    "updated": "2026-10-01T10:00:00.000-0300",
+    "issuelinks": [],
+    "subtasks": [],
+    "customfield_10013": null,
+    "customfield_10023": null,
+    "customfield_10204": null
+  }
+}

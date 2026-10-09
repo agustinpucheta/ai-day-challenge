@@ -1,0 +1,10 @@
+{
+  "id": "99",
+  "key": "DEMO-99",
+  "fields": {
+    "summary": "Missing issuetype and status",
+    "project": {
+      "key": "DEMO"
+    }
+  }
+}

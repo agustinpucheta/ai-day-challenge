@@ -51,3 +51,35 @@ export class JiraProtocolError extends Error {
     this.name = 'JiraProtocolError';
   }
 }
+
+/** Jira answered 400 (for example an invalid JQL). Jira's message is dropped on purpose. */
+export class JiraBadRequestError extends Error {
+  constructor() {
+    super('Jira rejected the request');
+    this.name = 'JiraBadRequestError';
+  }
+}
+
+/** The caller-supplied search input or paging parameters are invalid (no request was made). */
+export class JiraInvalidQueryError extends Error {
+  constructor() {
+    super('Invalid search input');
+    this.name = 'JiraInvalidQueryError';
+  }
+}
+
+/**
+ * The issue does not exist or is not visible. Jira answers 404 for both and 403 for restricted
+ * issues; callers must not be able to tell them apart (privacy), so the gateway reports all of
+ * them as this error. The real status is kept in a non-enumerable field for internal debugging
+ * only: it is absent from `JSON.stringify` and must never be sent to clients.
+ */
+export class JiraIssueNotFoundError extends Error {
+  declare readonly upstreamStatus: number | undefined;
+
+  constructor(upstreamStatus?: number) {
+    super('Issue not found');
+    this.name = 'JiraIssueNotFoundError';
+    Object.defineProperty(this, 'upstreamStatus', { value: upstreamStatus, enumerable: false });
+  }
+}

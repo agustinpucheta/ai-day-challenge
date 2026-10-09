@@ -1,0 +1,80 @@
+{
+  "issues": [
+    {
+      "expand": "operations",
+      "id": "1",
+      "self": "https://example.atlassian.net/rest/api/3/issue/1",
+      "key": "DEMO-1",
+      "fields": {
+        "summary": "Demo epic",
+        "issuetype": {
+          "id": "10000",
+          "name": "Epic",
+          "subtask": false,
+          "hierarchyLevel": 1
+        },
+        "status": {
+          "id": "3",
+          "name": "In progress",
+          "statusCategory": {
+            "id": 1,
+            "key": "indeterminate",
+            "name": "indeterminate"
+          }
+        },
+        "project": {
+          "id": "10100",
+          "key": "DEMO",
+          "name": "Demo project"
+        },
+        "resolution": null,
+        "created": "2026-09-01T10:00:00.000-0300",
+        "updated": "2026-10-01T10:00:00.000-0300",
+        "issuelinks": [],
+        "subtasks": [],
+        "customfield_10013": null,
+        "customfield_10023": null,
+        "customfield_10204": null
+      }
+    },
+    {
+      "expand": "operations",
+      "id": "8",
+      "self": "https://example.atlassian.net/rest/api/3/issue/8",
+      "key": "DEMO-8",
+      "fields": {
+        "summary": "Plain task",
+        "issuetype": {
+          "id": "10002",
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "status": {
+          "id": "1",
+          "name": "Open",
+          "statusCategory": {
+            "id": 1,
+            "key": "new",
+            "name": "new"
+          }
+        },
+        "project": {
+          "id": "10100",
+          "key": "DEMO",
+          "name": "Demo project"
+        },
+        "resolution": null,
+        "created": "2026-09-01T10:00:00.000-0300",
+        "updated": "2026-10-01T10:00:00.000-0300",
+        "issuelinks": [],
+        "subtasks": [],
+        "customfield_10013": null,
+        "customfield_10023": null,
+        "customfield_10204": null
+      }
+    }
+  ],
+  "nextPageToken": "opaque-token-page-2",
+  "isLast": false
+}

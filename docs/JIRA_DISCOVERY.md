@@ -147,3 +147,13 @@ project = MASIN AND issueLinkType in ("blocks", "is blocked by") ORDER BY update
 ```
 
 Variantes con `issuetype = Historia` devolvieron vacío sin error (ver Tipos de issue).
+
+## Configuración tipada
+
+Los ids confirmados arriba viven en `backend/src/jira/jira.config.ts` (campos de story points `customfield_10204` finales y `customfield_10023` planificados, `customfield_10013` Epic Link informativo, categorías de estado `new|indeterminate|done` y el id del estado Cancelado `10000`, D-014). Los issues se normalizan por id, `hierarchyLevel` y `subtask`, nunca por nombre; un valor nulo de story points se conserva como `null`.
+
+Forma REST v3 de la búsqueda, verificada contra la documentación oficial de Jira Cloud (https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/) el 2026-10-09:
+
+- **Verificado en documentación** — `POST /rest/api/3/search/jql` recibe en el cuerpo `jql`, `fields`, `maxResults` y `nextPageToken`; el `/rest/api/3/search` clásico figura como "currently being removed".
+- **Verificado en documentación** — `GET /rest/api/3/issue/{issueIdOrKey}` acepta `fields` como parámetro de consulta.
+- **PENDIENTE (verificación real)** — La respuesta usa `issues`, `nextPageToken` e `isLast` (sin `total`). Los fixtures de `backend/test/fixtures/jira/` asumen esa forma; confirmarla contra el sitio real y el impacto de los tokens con `UNSUPPORTED_JQL`.
