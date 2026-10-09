@@ -109,4 +109,95 @@ describe('api client', () => {
 
     expect(onUnauthenticated).toHaveBeenCalledTimes(1);
   });
+
+  describe('Jira connection', () => {
+    it('reads the connection status and verifies it with the typed endpoints', async () => {
+      const fetchMock = vi.fn<typeof fetch>(async (input) =>
+        String(input).endsWith('/verify')
+          ? jsonResponse(200, {
+              status: 'connected',
+              siteUrl: 'https://acme.atlassian.net',
+              displayName: 'Ada Lovelace',
+              checkedAt: '2026-10-09T12:00:00.000Z',
+            })
+          : jsonResponse(200, {
+              mode: 'api_token',
+              status: 'configured',
+              siteUrl: 'https://acme.atlassian.net',
+            }),
+      );
+      const api = createApiClient({ fetch: fetchMock });
+
+      await expect(api.getJiraConnection()).resolves.toMatchObject({ status: 'configured' });
+      await expect(api.verifyJiraConnection()).resolves.toMatchObject({
+        displayName: 'Ada Lovelace',
+      });
+      expect(fetchMock.mock.calls.map(([url, init]) => `${init?.method} ${String(url)}`)).toEqual([
+        'GET /api/v1/jira/connection',
+        'POST /api/v1/jira/connection/verify',
+      ]);
+    });
+
+    it.each([
+      [409, 'JIRA_NOT_CONNECTED'],
+      [424, 'JIRA_REAUTH_REQUIRED'],
+      [424, 'JIRA_FORBIDDEN'],
+      [429, 'JIRA_RATE_LIMITED'],
+      [503, 'JIRA_UNAVAILABLE'],
+    ] as const)('maps %i %s to a typed ApiError', async (status, code) => {
+      const api = createApiClient({
+        fetch: vi.fn(async () => jsonResponse(status, { code, message: `message for ${code}` })),
+      });
+
+      const error = await api.verifyJiraConnection().catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error).toMatchObject({ status, code, message: `message for ${code}` });
+    });
+
+    it('exposes Retry-After seconds and ignores invalid values', async () => {
+      const respond = (retryAfter: string): Promise<ApiError> =>
+        createApiClient({
+          fetch: vi.fn(
+            async () =>
+              new Response(JSON.stringify({ code: 'JIRA_RATE_LIMITED', message: 'Slow down' }), {
+                status: 429,
+                headers: { 'Content-Type': 'application/json', 'Retry-After': retryAfter },
+              }),
+          ),
+        })
+          .verifyJiraConnection()
+          .then(
+            () => {
+              throw new Error('expected a failure');
+            },
+            (e: unknown) => e as ApiError,
+          );
+
+      expect((await respond('30')).retryAfterSeconds).toBe(30);
+      expect((await respond('Wed, 21 Oct 2026 07:28:00 GMT')).retryAfterSeconds).toBeUndefined();
+    });
+
+    it('does not treat a Jira 424 as an expired session, unlike a real 401', async () => {
+      const onUnauthenticated = vi.fn();
+      const jira424 = createApiClient({
+        fetch: vi.fn(async () =>
+          jsonResponse(424, { code: 'JIRA_REAUTH_REQUIRED', message: 'Jira rejected the token' }),
+        ),
+        onUnauthenticated,
+      });
+      const session401 = createApiClient({
+        fetch: vi.fn(async () =>
+          jsonResponse(401, { code: 'UNAUTHENTICATED', message: 'Authentication required' }),
+        ),
+        onUnauthenticated,
+      });
+
+      await jira424.verifyJiraConnection().catch(() => undefined);
+      expect(onUnauthenticated).not.toHaveBeenCalled();
+
+      await session401.verifyJiraConnection().catch(() => undefined);
+      expect(onUnauthenticated).toHaveBeenCalledTimes(1);
+    });
+  });
 });

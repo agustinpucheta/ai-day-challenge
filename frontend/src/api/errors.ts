@@ -21,6 +21,8 @@ export class ApiError extends Error {
     public readonly code: ApiErrorCode | (string & {}),
     message: string,
     public readonly details?: ValidationDetail[],
+    /** Seconds from the `Retry-After` header (429 responses), when the server sent a valid one. */
+    public readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = 'ApiError';

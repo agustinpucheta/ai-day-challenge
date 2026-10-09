@@ -60,8 +60,8 @@ MVP phases 0–9 from `docs/IMPLEMENTATION_PLAN.md`. The license flow is now in 
     - [x] F2.2 OAuth state service (one-time, session-bound, short expiry) + Atlassian OAuth client (authorize URL, code exchange, accessible-resources, refresh) behind an injectable HTTP port; tests with a fake Atlassian.
     - [x] F2.3 Connections service: persist encrypted tokens per user+cloudId, serialized rotating refresh, `reauthorization_required` status, disconnect with revoke.
   - API token mode (default):
-    - [ ] F2.4 `JiraCredentialProvider.resolve(userId)` interface + `ApiTokenCredentialProvider` + env validation (`JIRA_URL`, `JIRA_USERNAME`, `JIRA_API_TOKEN` optional: unset = "not configured") + `GET /jira/connection` and a read-only "verify" action calling Jira `GET /rest/api/3/myself` returning only connected/siteUrl/displayName (never the token) + OpenAPI regenerated.
-    - [ ] F2.5 Frontend connection panel (not configured / verifying / connected / error / unauthorized token); regenerate API types.
+    - [x] F2.4 `JiraCredentialProvider.resolve(userId)` interface + `ApiTokenCredentialProvider` + env validation (`JIRA_URL`, `JIRA_USERNAME`, `JIRA_API_TOKEN` optional: unset = "not configured") + `GET /jira/connection` and a read-only "verify" action calling Jira `GET /rest/api/3/myself` returning only connected/siteUrl/displayName (never the token) + OpenAPI regenerated.
+    - [x] F2.5 Frontend connection panel (not configured / verifying / connected / error / unauthorized token); regenerate API types.
     - [ ] F2.6 Docs: create/rotate the token at id.atlassian.com (Security, API tokens), `.env` setup, troubleshooting.
   - Note: OAuth HTTP layer (start/callback/connections/disconnect) + OAuth frontend + multi-user isolation tests moved to the post-MVP backlog ("Backlog post-MVP: modo multiusuario con OAuth" in `docs/IMPLEMENTATION_PLAN.md`).
 - [ ] **F3** — Jira Gateway and search/read. Gate: user sees a permitted real issue; inaccessible issues leak nothing; errors never become empty lists/0%.

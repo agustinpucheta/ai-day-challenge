@@ -96,6 +96,40 @@ export interface paths {
     patch: operations['PreferencesController_update'];
     trace?: never;
   };
+  '/api/v1/jira/connection': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Jira connection state (no network call, no secrets) */
+    get: operations['JiraConnectionController_status'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/jira/connection/verify': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Verify the Jira credentials with a read-only call to /myself */
+    post: operations['JiraConnectionController_verify'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/health': {
     parameters: {
       query?: never;
@@ -171,6 +205,11 @@ export interface components {
         | 'EMAIL_ALREADY_REGISTERED'
         | 'NOT_FOUND'
         | 'DATABASE_UNAVAILABLE'
+        | 'JIRA_NOT_CONNECTED'
+        | 'JIRA_REAUTH_REQUIRED'
+        | 'JIRA_FORBIDDEN'
+        | 'JIRA_RATE_LIMITED'
+        | 'JIRA_UNAVAILABLE'
         | 'INTERNAL_ERROR';
       /** @example Authentication required */
       message: string;
@@ -208,6 +247,36 @@ export interface components {
       showWeeklySp?: boolean;
       showSubtasks?: boolean;
       showDependencies?: boolean;
+    };
+    JiraConnectionStatusDto: {
+      /**
+       * @example api_token
+       * @enum {string}
+       */
+      mode: 'api_token';
+      /**
+       * @example configured
+       * @enum {string}
+       */
+      status: 'not_configured' | 'configured';
+      /** @example https://acme.atlassian.net */
+      siteUrl: string | null;
+    };
+    JiraConnectionVerifyDto: {
+      /**
+       * @example connected
+       * @enum {string}
+       */
+      status: 'connected';
+      /** @example https://acme.atlassian.net */
+      siteUrl: string;
+      /** @example Ada Lovelace */
+      displayName: string;
+      /**
+       * Format: date-time
+       * @description When Jira was queried.
+       */
+      checkedAt: string;
     };
     HealthResponseDto: {
       /** @enum {string} */
@@ -265,7 +334,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponseDto'];
         };
       };
-      /** @description EMAIL_ALREADY_REGISTERED */
+      /** @description EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured) */
       409: {
         headers: {
           [name: string]: unknown;
@@ -274,7 +343,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponseDto'];
         };
       };
-      /** @description RATE_LIMITED */
+      /** @description RATE_LIMITED (local throttle) or JIRA_RATE_LIMITED (Jira; see Retry-After) */
       429: {
         headers: {
           [name: string]: unknown;
@@ -333,7 +402,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponseDto'];
         };
       };
-      /** @description RATE_LIMITED */
+      /** @description RATE_LIMITED (local throttle) or JIRA_RATE_LIMITED (Jira; see Retry-After) */
       429: {
         headers: {
           [name: string]: unknown;
@@ -477,6 +546,107 @@ export interface operations {
       };
     };
   };
+  JiraConnectionController_status: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['JiraConnectionStatusDto'];
+        };
+      };
+      /** @description UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login) */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+    };
+  };
+  JiraConnectionController_verify: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['JiraConnectionVerifyDto'];
+        };
+      };
+      /** @description UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login) */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description FORBIDDEN_ORIGIN (CSRF origin check) or REGISTRATION_DISABLED */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description JIRA_REAUTH_REQUIRED (Jira rejected the API token) or JIRA_FORBIDDEN (account lacks permission) */
+      424: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description RATE_LIMITED (local throttle) or JIRA_RATE_LIMITED (Jira; see Retry-After) */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+      /** @description DATABASE_UNAVAILABLE or JIRA_UNAVAILABLE */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponseDto'];
+        };
+      };
+    };
+  };
   HealthController_check: {
     parameters: {
       query?: never;
@@ -494,7 +664,7 @@ export interface operations {
           'application/json': components['schemas']['HealthResponseDto'];
         };
       };
-      /** @description DATABASE_UNAVAILABLE */
+      /** @description DATABASE_UNAVAILABLE or JIRA_UNAVAILABLE */
       503: {
         headers: {
           [name: string]: unknown;

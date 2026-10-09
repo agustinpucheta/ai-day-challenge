@@ -8,6 +8,8 @@ export type LoginRequest = Schemas['LoginDto'];
 export type RegisterRequest = Schemas['RegisterDto'];
 export type Preferences = Schemas['PreferencesResponseDto'];
 export type PreferencesUpdate = Schemas['UpdatePreferencesDto'];
+export type JiraConnectionStatus = Schemas['JiraConnectionStatusDto'];
+export type JiraConnectionVerification = Schemas['JiraConnectionVerifyDto'];
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH';
 /** Only paths that exist in the generated OpenAPI contract compile. */
@@ -34,6 +36,15 @@ function isErrorBody(
     typeof (value as { code?: unknown }).code === 'string' &&
     typeof (value as { message?: unknown }).message === 'string'
   );
+}
+
+/** `Retry-After` in whole seconds; HTTP-date values are ignored (Jira sends seconds). */
+function parseRetryAfter(response: Response): number | undefined {
+  const raw = response.headers.get('Retry-After');
+  if (raw === null || !/^\d+$/.test(raw.trim())) {
+    return undefined;
+  }
+  return Number(raw.trim());
 }
 
 async function readJson(response: Response): Promise<unknown> {
@@ -86,7 +97,13 @@ export function createApiClient(options: ApiClientOptions = {}) {
         options.onUnauthenticated?.();
       }
       if (isErrorBody(payload)) {
-        throw new ApiError(response.status, payload.code, payload.message, payload.details);
+        throw new ApiError(
+          response.status,
+          payload.code,
+          payload.message,
+          payload.details,
+          parseRetryAfter(response),
+        );
       }
       throw new ApiError(
         response.status,
@@ -114,6 +131,11 @@ export function createApiClient(options: ApiClientOptions = {}) {
     getPreferences: () => request<Preferences>('GET', '/api/v1/users/me/preferences'),
     updatePreferences: (body: PreferencesUpdate) =>
       request<Preferences>('PATCH', '/api/v1/users/me/preferences', { body }),
+    /** Local state only; never calls Jira. */
+    getJiraConnection: () => request<JiraConnectionStatus>('GET', '/api/v1/jira/connection'),
+    /** Read-only probe of the Jira credentials. Jira failures are 4xx/5xx but never 401. */
+    verifyJiraConnection: () =>
+      request<JiraConnectionVerification>('POST', '/api/v1/jira/connection/verify'),
   };
 }
 
