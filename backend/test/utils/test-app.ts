@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { Test } from '@nestjs/testing';
+import { Test, type TestingModuleBuilder } from '@nestjs/testing';
 import request from 'supertest';
 import type TestAgent from 'supertest/lib/agent';
 import { AppModule } from '../../src/app.module';
@@ -24,8 +24,10 @@ export interface TestContext {
 /**
  * A fresh application per test keeps the in-memory throttler state isolated.
  */
-export async function createTestApp(): Promise<TestContext> {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+export async function createTestApp(
+  customize: (builder: TestingModuleBuilder) => TestingModuleBuilder = (builder) => builder,
+): Promise<TestContext> {
+  const moduleRef = await customize(Test.createTestingModule({ imports: [AppModule] })).compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({ logger: false });
   configureApp(app);
   await app.init();
@@ -46,7 +48,7 @@ export async function createTestApp(): Promise<TestContext> {
 async function resetDatabase(prisma: PrismaService): Promise<void> {
   assertTestDatabase(process.env.DATABASE_URL ?? '');
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE "audit_events", "user_preferences", "external_identities", "user_sessions", "users" CASCADE',
+    'TRUNCATE TABLE "audit_events", "jira_connections", "oauth_states", "user_preferences", "external_identities", "user_sessions", "users" CASCADE',
   );
 }
 

@@ -1,13 +1,18 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AuditModule } from '../audit/audit.module';
 import type { Env } from '../config/env';
+import { CryptoModule } from '../crypto/crypto.module';
+import { JiraConnectionsService } from './connections/jira-connections.service';
 import { AtlassianOAuthClient } from './oauth/atlassian-oauth.client';
 import { FetchHttpPort, HTTP_PORT, type HttpPort } from './oauth/http-port';
 import { OAuthStateService } from './oauth/oauth-state.service';
 
 @Module({
+  imports: [CryptoModule, AuditModule],
   providers: [
     OAuthStateService,
+    JiraConnectionsService,
     { provide: HTTP_PORT, useFactory: (): HttpPort => new FetchHttpPort() },
     {
       provide: AtlassianOAuthClient,
@@ -39,6 +44,6 @@ import { OAuthStateService } from './oauth/oauth-state.service';
       },
     },
   ],
-  exports: [OAuthStateService, AtlassianOAuthClient, HTTP_PORT],
+  exports: [OAuthStateService, JiraConnectionsService, AtlassianOAuthClient, HTTP_PORT],
 })
 export class JiraOAuthModule {}

@@ -31,6 +31,15 @@
 - AAD: cada token se vincula al identificador de su conexión, de modo que un ciphertext copiado a otra fila no descifra.
 - Los errores de descifrado (`TokenDecryptionError`) no incluyen texto plano, claves ni ciphertext.
 
+## Manejo de conexiones Jira
+
+- Una fila por autorización: los tokens pertenecen a la autorización y no al sitio, por lo que no se guardan copias del mismo refresh token en varios sitios (quedarían obsoletas tras la rotación). Si la autorización otorga varios sitios, se elige el que coincide con `preferredSiteUrl` o `ATLASSIAN_PREFERRED_SITE_URL` (sin valor por defecto); si ninguno coincide se devuelve `MultipleSitesError` con los candidatos (`cloudId`, nombre, URL) y no se guarda nada. Reconectar actualiza la misma fila (clave `user_id` + `cloud_id`) y la deja en `active`.
+- Renovación serializada: si el access token vence en menos de 60 s, la renovación se hace dentro de una transacción con `SELECT ... FOR UPDATE` sobre la fila. Quien espera el bloqueo relee la fila y reutiliza el token ya renovado. El nuevo refresh token rotatorio se cifra y persiste en esa misma transacción, antes de devolver el access token. Las fallas transitorias (429, 5xx, red, respuesta inesperada) revierten la transacción, mantienen la conexión `active` y propagan el error tipado.
+- Reautorización: un `invalid_grant` o un token imposible de descifrar (por ejemplo, ciphertext copiado a otra conexión) marcan la conexión como `reauthorization_required`, registran `jira_reauth_required` y lanzan `ReauthorizationRequiredError`. Las llamadas posteriores fallan sin contactar a Atlassian hasta que el usuario reconecte.
+- Aislamiento: toda consulta filtra por `user_id`; la conexión de otro usuario es indistinguible de una inexistente (`ConnectionNotFoundError`).
+- Desconexión: elimina la fila local, y con ella ambos tokens cifrados, y registra `jira_disconnected`; los eventos de auditoría se conservan (`connection_id` pasa a `NULL`). La documentación de Atlassian OAuth 2.0 (3LO) no define un endpoint de revocación de tokens para la aplicación, por lo que no se revoca de forma remota: el usuario puede quitar el acceso de la app desde su cuenta de Atlassian. Un refresh token sin uso caduca a los 90 días.
+- La auditoría usa solo metadatos permitidos (`cloudId`, id de conexión, código de error); nunca tokens, códigos ni correos.
+
 ## State de OAuth
 
 - El `state` son 32 bytes aleatorios (base64url). En `oauth_states` solo se guarda su hash SHA-256; el valor en claro viaja únicamente hacia Atlassian y de vuelta en el callback.

@@ -72,6 +72,20 @@ describe('validateEnv', () => {
       expect(env.ATLASSIAN_API_BASE_URL).toBe('https://api.atlassian.com');
     });
 
+    it('accepts an optional preferred site URL with no default and rejects a malformed one', () => {
+      expect(validateEnv(VALID).ATLASSIAN_PREFERRED_SITE_URL).toBeUndefined();
+      const empty = validateEnv({ ...VALID, ATLASSIAN_PREFERRED_SITE_URL: '' });
+      expect(empty.ATLASSIAN_PREFERRED_SITE_URL).toBeUndefined();
+      const set = validateEnv({
+        ...VALID,
+        ATLASSIAN_PREFERRED_SITE_URL: 'https://acme.atlassian.net',
+      });
+      expect(set.ATLASSIAN_PREFERRED_SITE_URL).toBe('https://acme.atlassian.net');
+      expect(messageOf({ ...VALID, ATLASSIAN_PREFERRED_SITE_URL: 'not a url' })).toContain(
+        'ATLASSIAN_PREFERRED_SITE_URL',
+      );
+    });
+
     it('treats empty strings as unset', () => {
       const env = validateEnv({
         ...VALID,

@@ -85,6 +85,8 @@ export const envSchema = z
     ATLASSIAN_SCOPES: emptyAsUnset(
       z.string().default('read:jira-work write:jira-work offline_access'),
     ),
+    /** Optional site to pick when one authorization grants several Jira sites. No default. */
+    ATLASSIAN_PREFERRED_SITE_URL: emptyAsUnset(z.url().optional()),
     ATLASSIAN_AUTH_BASE_URL: emptyAsUnset(z.url().default('https://auth.atlassian.com')),
     ATLASSIAN_API_BASE_URL: emptyAsUnset(z.url().default('https://api.atlassian.com')),
   })
