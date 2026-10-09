@@ -4,7 +4,7 @@ Este paquete contiene el plan funcional y técnico acordado para implementar el 
 
 ## Objetivo
 
-Construir un dashboard personal sobre Jira Cloud (`*.atlassian.net`) con Vue 3 + Vite, NestJS y PostgreSQL. En la primera entrega cada persona tendrá su usuario local, conectará su propio Jira mediante OAuth 2.0 (3LO), verá únicamente los datos que sus permisos de Jira le permiten consultar, y podrá ejecutar transiciones autorizadas con su propia identidad. Microsoft SSO y Railway se dejan para una segunda entrega.
+Construir un dashboard personal sobre Jira Cloud (`*.atlassian.net`) con Vue 3 + Vite, NestJS y PostgreSQL. La primera entrega es una app local para una sola persona: se conecta a Jira con el API token de su propia cuenta (D-023), ve los datos que los permisos de esa cuenta le permiten consultar y puede ejecutar transiciones autorizadas con esa identidad. La adaptación multiusuario con OAuth 2.0 (3LO) queda como modo opcional posterior. Microsoft SSO y Railway se dejan para una segunda entrega.
 
 ## Cómo usar este paquete
 
@@ -24,7 +24,7 @@ Construir un dashboard personal sobre Jira Cloud (`*.atlassian.net`) con Vue 3 +
 - Backend: NestJS, TypeScript.
 - Repositorio: proyectos independientes `backend/` y `frontend/` con pnpm 10, sin workspaces (D-016).
 - Persistencia: PostgreSQL local mediante Docker Compose; Prisma como ORM y migraciones.
-- Primera entrega: login local email/contraseña, OAuth individual de Atlassian, preferencias por usuario, dashboard de métricas, dependencias y transiciones autorizadas.
+- Primera entrega: login local email/contraseña, conexión a Jira con API token (OAuth opcional posterior), preferencias por usuario, dashboard de métricas, dependencias y transiciones autorizadas.
 - SSO de Microsoft: segunda entrega.
 - Despliegue en Railway: segunda entrega, después de validar el MVP local.
 - Claude Code subagents: herramientas de desarrollo y revisión. Los cálculos de métricas del producto son deterministas; no requieren un agente LLM en runtime.
@@ -44,6 +44,14 @@ El repositorio tiene dos proyectos independientes, `backend/` y `frontend/`, y u
 6. Documentación de la API: Swagger UI en `http://localhost:3000/api/docs` y especificación JSON en `http://localhost:3000/api/docs-json` (deshabilitada en producción salvo `SWAGGER_ENABLED=true`). Para regenerar `backend/openapi.json`, que usa el frontend para generar tipos: `pnpm --dir backend openapi:export`.
 7. Iniciá la web: `pnpm dev:frontend` (o `pnpm dev` para levantar API y web juntas). Queda en `http://localhost:5173`. El servidor de Vite redirige `/api` a `http://localhost:3000` (proxy), así el navegador trabaja en un único origen, la cookie de sesión `HttpOnly` funciona sin CORS y el `Origin` enviado (`http://localhost:5173`) coincide con `WEB_ORIGIN`. Para usar otra dirección de la API: variable `VITE_API_PROXY_TARGET` al iniciar Vite.
 8. Después de cambiar la API: `pnpm --dir backend openapi:export` y luego `pnpm --dir frontend api:types`, que regenera `frontend/src/api/schema.d.ts` (versionado). Si el contrato cambió, `pnpm --dir frontend typecheck` señala los usos a corregir.
+
+**Conexión a Jira (variables de entorno):**
+
+- `JIRA_URL` (por ejemplo `https://fpatronal.atlassian.net`), `JIRA_USERNAME` (email de tu cuenta Atlassian) y `JIRA_API_TOKEN` (API token de Jira Cloud, creado en id.atlassian.com → Security → API tokens). Son las mismas credenciales que usa tu MCP local de Jira; las de Confluence no se necesitan (D-023).
+- Son opcionales hasta que exista la funcionalidad de conexión: si faltan, la conexión figura como "no configurada".
+- Completá el archivo `.env` a mano; nunca se versiona ni debe compartirse.
+- Las variables `ATLASSIAN_*` (OAuth) solo se usan en el modo OAuth opcional, previsto para una futura adaptación multiusuario.
+- Tras crear tu cuenta local, deshabilitá el registro con `LOCAL_REGISTRATION_ENABLED=false`.
 
 **Calidad y pruebas (backend):**
 

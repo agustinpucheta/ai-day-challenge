@@ -64,6 +64,8 @@ Los contratos HTTP no se comparten por paquete. Mitigación planificada para la 
 - `AuditModule`: eventos de autenticación relevantes, conexiones y transiciones (sin secretos ni cuerpos sensibles innecesarios).
 - `HealthModule`: salud de app/DB sin incluir secretos.
 
+> Nota (D-023): por defecto `JiraModule` resuelve credenciales con `ApiTokenCredentialProvider` (API token del dueño de la instancia desde `JIRA_URL`, `JIRA_USERNAME`, `JIRA_API_TOKEN`) a través de la interfaz `JiraCredentialProvider`. `JiraOAuthModule` y `JiraConnectionsModule` son el modo OAuth opcional y dormido para la adaptación multiusuario.
+
 No crear un módulo de orquestación genérico complejo. Dentro del MVP, los pipelines pueden ser servicios de aplicación con pasos claros, resultados tipados, tiempos y errores controlados.
 
 ## 5. Interfaz JiraGateway
@@ -81,11 +83,12 @@ interface JiraGateway {
 }
 ```
 
-La interfaz no debe permitir que el caller pase una access token cualquiera. El adaptador resuelve la conexión usando el usuario autenticado y el sitio autorizado. Los tipos internos normalizan las variaciones del REST de Jira sin perder `issueKey`, `issueId`, `cloudId`, URL, status category, estimación, parent, subtasks y issue links.
+La interfaz no debe permitir que el caller pase una access token cualquiera. El adaptador resuelve las credenciales mediante `JiraCredentialProvider.resolve(userId)`: en el modo por defecto (D-023) son las credenciales de instancia del API token; en el modo OAuth, la conexión del usuario autenticado y el sitio autorizado. Los tipos internos normalizan las variaciones del REST de Jira sin perder `issueKey`, `issueId`, `cloudId`, URL, status category, estimación, parent, subtasks y issue links.
 
 ## 6. Cliente HTTP y base URL
 
-- Para Jira Cloud OAuth 3LO, descubrir sitios autorizados y su `cloudId` tras el callback.
+- Modo por defecto (D-023, API token): base URL = URL del sitio (`https://<sitio>.atlassian.net/rest/api/3/...`) con `Authorization: Basic base64(email:api_token)` armado por request.
+- Para Jira Cloud OAuth 3LO (modo opcional), descubrir sitios autorizados y su `cloudId` tras el callback.
 - Ejecutar las REST API con el esquema de URL de Atlassian para el `cloudId`; no asumir que el dominio del sitio puede reemplazar cualquier URL de API.
 - Implementar paginación, rate limits, reintentos con backoff para errores transitorios, timeout y mensajes de error sanitizados.
 - No usar JQL generado directamente a partir de texto sin validación/escape. Preferir consultas parametrizadas o construir la sintaxis de forma segura.

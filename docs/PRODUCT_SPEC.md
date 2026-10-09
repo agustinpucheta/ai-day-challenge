@@ -8,7 +8,7 @@ Dashboard local y personalizado para seguir épicas e historias de Jira Cloud. E
 
 - MVP para varios usuarios de una misma instancia de la app local, cada uno con identidad propia de la aplicación.
 - Entrega 1: registro/login local con email y contraseña; password hash seguro, sesión de servidor y PostgreSQL.
-- Cada usuario conecta su propia cuenta Jira Cloud mediante OAuth 2.0 de Atlassian (3LO).
+- MVP de una sola persona por instancia: la app se conecta a Jira Cloud con el API token de la cuenta del propietario (D-023). La conexión de cada usuario con OAuth 2.0 de Atlassian (3LO) queda como modo opcional posterior para multiusuario.
 - No hay credenciales compartidas de Jira. Operaciones de lectura y escritura usan el token vinculado al usuario autenticado.
 - Microsoft SSO se incorpora en la Entrega 2. El identificador interno del usuario debe permanecer estable para poder vincular una identidad externa sin perder preferencias.
 - Railway queda fuera de la primera entrega.
@@ -80,18 +80,19 @@ Dashboard local y personalizado para seguir épicas e historias de Jira Cloud. E
 
 - La interfaz obtiene las transiciones válidas del issue a través del backend.
 - Solo permite seleccionar una transición devuelta por Jira en esa consulta.
-- La ejecución ocurre con el token OAuth del usuario y registra resultado, issue, transición y timestamp, sin guardar secretos.
+- La ejecución ocurre con las credenciales de Jira de la instancia (API token del propietario en el MVP) y registra resultado, issue, transición y timestamp, sin guardar secretos.
 - Manejar permisos insuficientes, sesión expirada, token revocado, transición desactualizada y fallos de red.
 - No implementar edición arbitraria de campos, transiciones masivas ni acciones de administrador en el MVP.
 
-## 7. Skill de licencias (separada del dashboard)
+## 7. Licencias (Fase 9 del MVP) y Skill opcional
 
-- Funcionalidad futura de Claude Code usando el MCP ya configurado.
+- El dashboard cubre los tickets de licencia como Fase 9 del MVP (D-020, D-021): formulario manual, borrador asistido por IA opcional (solo produce borradores) y `.ics` descargable para el calendario. No escribe en Outlook.
+- La Skill de Claude Code (`docs/future/crear-ticket-licencia-SKILL.md`) queda como herramienta opcional de desarrollo, separada del dashboard, usando el MCP ya configurado.
 - El formato es fijo y debe definirse inspeccionando la plantilla real de Jira.
 - La interacción diaria debe pedir únicamente la épica de destino; si existen épicas ambiguas, solicitar aclaración. El contenido fijo no se vuelve a preguntar.
 - Antes de activar la Skill deben verificarse el tipo de issue, los campos requeridos, los campos personalizados y cómo relacionar el ticket a la épica.
-- La Skill no debe crear un ticket real hasta que la plantilla esté verificada y el usuario haya aprobado el borrador concreto.
-- No implementar esta funcionalidad dentro de la Entrega 1 del dashboard.
+- Ni el dashboard ni la Skill deben crear un ticket real hasta que la plantilla esté verificada y el usuario haya confirmado explícitamente el borrador concreto.
+- La implementación ocurre al final del MVP (Fase 9), después de las fases 1–8.
 
 ## 8. Criterios globales de UX
 

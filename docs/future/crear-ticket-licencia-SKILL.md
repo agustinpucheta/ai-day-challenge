@@ -7,6 +7,8 @@ description: Crea un ticket de licencia en Jira con el formato fijo acordado, pi
 
 Esta Skill es un borrador de segunda etapa. Antes de activarla, completar y verificar la plantilla real de licencia, el tipo de issue, los campos obligatorios, campos personalizados, valores permitidos y el campo de relación con la épica en la instancia Jira real.
 
+> **Nota (2026-10-09):** el flujo principal de licencias se movió al dashboard (Fase 9 del MVP, D-020/D-021). Esta Skill queda como herramienta opcional del lado del desarrollo y sigue sin activarse antes de verificar la plantilla.
+
 ## Objetivo final
 
 El formato de licencia debe ser fijo y reutilizable. En el uso diario, pedir únicamente la clave o nombre de la épica de destino. No volver a preguntar por campos que ya queden determinados por la plantilla.

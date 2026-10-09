@@ -20,6 +20,8 @@
 
 **Decisión:** una integración Atlassian OAuth 2.0 3LO compartida como aplicación de producto; cada usuario autoriza su propia cuenta/sitio. No recolectar API tokens ni exigir que cada usuario cree su propia app OAuth. Las acciones de Jira se ejecutan con la autorización individual.
 
+> Nota: superada parcialmente por D-023 (modo por defecto); el modo OAuth queda como opción dormida para la adaptación multiusuario.
+
 ## D-006 — Métricas deterministas
 
 **Decisión:** progreso, subtareas, SP semanal y dependencia son lógica TypeScript testeable; no requieren LLM en runtime. Claude Code subagents se usan para construir y revisar el software.
@@ -107,3 +109,71 @@
 **Decisión:** el cliente OAuth de Atlassian (`AtlassianOAuthClient`) recibe un `HttpPort` (`postJson` / `getJson`, devuelve `{ status, headers, body }`) en lugar de usar `fetch` directamente. La implementación por defecto (`FetchHttpPort`) usa `fetch` global con timeout de 10 s, sin redirecciones y sin reintentos. Las pruebas usan `FakeAtlassian` (`backend/test/utils/fake-atlassian.ts`), un doble en memoria con códigos de autorización de un solo uso, refresh token rotatorio (cada refresh invalida el anterior), revocación y fallos programables (`invalid_grant`, 429 con `Retry-After`, 500, cuerpo mal formado, error de red). Los errores del cliente son tipados y de mensaje fijo, sin tokens, secreto, códigos ni cuerpos remotos.
 
 **Tradeoff:** el doble reproduce el contrato documentado, no el comportamiento real de Atlassian, por lo que la verificación con credenciales reales sigue siendo manual (F2.6). A cambio, las pruebas son deterministas, no usan red y se reutilizan en F2.3 y F2.4.
+
+## D-020 — Flujo de licencias dentro del MVP como Fase 9
+
+**Fecha:** 2026-10-09.
+
+**Decisión:** el flujo de licencias pasa a ser la última fase del MVP (Fase 9). El usuario registra las vacaciones en el dashboard; la app crea el ticket de licencia en Jira con el token OAuth del propio usuario (solo con confirmación explícita) y entrega un `.ics` descargable como entrada de calendario. Proyecto local. La Fase 8 queda como E2E base de las fases 1–7 y el cierre del MVP ocurre al terminar la Fase 9. La Skill de Claude Code sigue como herramienta opcional de desarrollo.
+
+**Por qué `.ics` y no escritura en Outlook:** el conector Microsoft 365 disponible en Claude Code es de solo lectura y el backend no puede usar los MCP de Claude Code. Crear o leer eventos de Outlook desde la app exige Microsoft Graph y un registro de aplicación en Microsoft Entra (posiblemente con consentimiento de administrador).
+
+**Tradeoff:** el `.ics` requiere importar el archivo a mano y no crea el evento dentro de Outlook. A cambio no depende de Entra. Microsoft Graph queda como mejora opcional posterior (9.5), reutilizando el patrón de estado OAuth y tokens cifrados de la Fase 2.
+
+## D-021 — Agente de IA en runtime solo para borradores de licencias
+
+**Fecha:** 2026-10-09.
+
+**Decisión:** se permite un agente de IA en runtime (Claude API) ÚNICAMENTE para redactar borradores de solicitudes de licencia a partir de texto libre. El agente produce un borrador estructurado y nunca escribe en Jira ni en calendarios. Es opcional por entorno (apagado si `ANTHROPIC_API_KEY` no está definida), el backend re-valida todo de forma determinista y una persona confirma antes de cualquier escritura. Las métricas siguen siendo deterministas (D-006); el LLM no participa en ningún cálculo.
+
+**Condiciones:** clave solo en el backend; sin secretos, tokens ni PII adicional enviados al modelo; límites de tamaño y de tasa; logs sin contenido; degradación al formulario manual; los datos provenientes de Jira (títulos de épicas, notas) se tratan como no confiables frente a prompt injection; tests con cliente de modelo falso.
+
+**Tradeoff:** agrega una dependencia externa y costo por uso a cambio de una entrada más cómoda; el riesgo se acota porque el agente no tiene capacidad de escritura.
+
+## D-022 — Evento de Outlook mediante agente + MCP (opción 3), con spike previo y `.ics` como respaldo
+
+**Fecha:** 2026-10-09.
+
+**Decisión:** para el paso de calendario de la Fase 9, el usuario eligió que el agente de IA cree el evento usando el conector Microsoft 365 / Outlook MCP (9.2b), precedido por un spike de viabilidad (9.0b). La descarga de `.ics` (9.2) se mantiene como respaldo garantizado y automático.
+
+**Enmienda a D-021 (D-021 no se edita):** D-021 establece que el agente nunca escribe en calendarios. Esa restricción queda superada ÚNICAMENTE para la creación de eventos de calendario, solo con confirmación explícita del usuario (vista previa en la UI y `canUseTool`/hook) y solo si el spike 9.0b lo valida. El agente sigue sin escribir en Jira: el ticket lo crea el backend NestJS con el OAuth individual del usuario (D-005) tras la confirmación.
+
+**Hechos verificados (documentación oficial, 2026-10-09):**
+
+- El Agent SDK (TypeScript) acepta servidores MCP vía `mcpServers` (stdio, http) o `.mcp.json` con `settingSources`. Fuentes: https://code.claude.com/docs/en/agent-sdk/mcp.md , https://code.claude.com/docs/en/agent-sdk/claude-code-features.md
+- Los conectores alojados en claude.ai (Microsoft 365) se obtienen en sesiones del Agent SDK SOLO con login de suscripción de claude.ai; se omiten con `ANTHROPIC_API_KEY`. El SDK no ejecuta OAuth interactivo para servidores remotos. Fuentes: https://code.claude.com/docs/en/mcp.md , https://code.claude.com/docs/en/authentication.md
+- Política: "Unless previously approved, Anthropic does not allow third party developers to offer claude.ai login or rate limits for their products, including agents built on the Claude Agent SDK." Fuente: https://code.claude.com/docs/en/agent-sdk/quickstart.md
+- El conector Microsoft 365 es de solo lectura por defecto (`outlook_calendar_search`, `find_meeting_availability`, ...); las herramientas de escritura de calendario (crear/actualizar/eliminar eventos) solo existen si el administrador de la organización las habilitó y aprobó los permisos. Fuentes: https://support.claude.com/en/articles/12542951-enabling-and-using-the-microsoft-365-connector , https://claude.com/docs/connectors/microsoft/365.md
+- Permisos: `allowedTools` + `permissionMode: "dontAsk"` como allowlist estricta, `disallowedTools` para herramientas de escritura de Jira, `canUseTool`/hook `PreToolUse` para confirmación humana y validación de argumentos; nunca `bypassPermissions`. Los títulos y notas de Jira son datos no confiables (prompt injection). Fuentes: https://code.claude.com/docs/en/agent-sdk/permissions.md , https://code.claude.com/docs/en/agent-sdk/user-input.md , https://code.claude.com/docs/en/agent-sdk/secure-deployment.md
+- El conector MCP de la Messages API (cabecera beta `mcp-client-2025-11-20`) solo funciona con servidores MCP HTTP públicos; un servidor stdio local (`mcp-atlassian`) no puede usarlo.
+
+**PENDIENTE (sin verificar):**
+
+- Si una app personal, local y de un solo usuario cuenta como "tercero" bajo la política de login de suscripción (revisar Términos o consultar a Anthropic).
+- Si el administrador habilitó las herramientas de escritura del conector; en la sesión del usuario solo se listaron herramientas de lectura, por lo que es probable que estén apagadas.
+- Si las entradas de `~/.claude.json` (alcance local) se cargan en una sesión del SDK; por eso el MCP de Jira se declara explícitamente.
+
+**Consecuencias:**
+
+- Conflicto de modo de autenticación: el login de suscripción habilita el conector Microsoft 365 pero tiene riesgo de política; `ANTHROPIC_API_KEY` es el modo habitual del backend (9.4) pero no carga el conector. Con la clave de API, el paso de calendario queda en `.ics`.
+- La creación del ticket permanece en el backend con OAuth individual; el agente nunca escribe en Jira (herramientas de escritura de Jira en `disallowedTools`).
+- Punto de decisión tras el spike 9.0b: mantener 9.2b, pasar a Microsoft Graph (9.5) o quedarse con `.ics`.
+
+## D-023 — App local de un solo usuario con API token de Jira (reemplaza a D-005 como modo por defecto)
+
+**Fecha:** 2026-10-09.
+
+**Decisión:** por ahora la aplicación es local y para un único usuario (el dueño de la instancia). La conexión a Jira usa las mismas credenciales que ya tiene en su MCP local de Jira: un API token de Jira Cloud con autenticación Basic (`Authorization: Basic base64(email:api_token)`) contra la URL del sitio (`https://<sitio>.atlassian.net/rest/api/3/...`). Variables de entorno, con los mismos nombres que usa el MCP: `JIRA_URL`, `JIRA_USERNAME` (email de la cuenta) y `JIRA_API_TOKEN`. Las variables de Confluence no se necesitan. El usuario completa `.env` a mano. Más adelante se adaptará para más personas.
+
+**Motivos:** simplicidad; no requiere crear una aplicación OAuth, redirect ni dependencia de un administrador de Atlassian; reutiliza credenciales ya existentes y los permisos son los de esa cuenta.
+
+**Consecuencias:**
+
+- Hay una sola identidad Jira por instancia. El aislamiento por usuario local deja de proteger los datos de Jira: cualquier usuario local autenticado vería los datos de esa cuenta.
+- Mitigaciones: ejecutar solo en `localhost`, deshabilitar el registro (`LOCAL_REGISTRATION_ENABLED=false`) una vez creada la cuenta del dueño y mantener el token únicamente en `.env` (nunca en frontend, logs, tests ni respuestas API).
+- `JiraGateway` resuelve credenciales mediante la interfaz `JiraCredentialProvider.resolve(userId)`. El proveedor por defecto es `ApiTokenCredentialProvider` (credenciales de instancia desde el entorno; el token vive solo en memoria y el header `Authorization` se arma por request). Un proveedor OAuth por usuario podrá enchufarse después.
+- Las escrituras en Jira (transiciones de la Fase 7, ticket de licencia de la Fase 9) siguen exigiendo validación del backend y confirmación explícita; con API token actúan como la cuenta del dueño.
+
+**Qué se mantiene:** los módulos OAuth ya construidos (F2.1 cifrado de tokens y tablas `jira_connections`/`oauth_states`; F2.2 servicio de `state` y cliente Atlassian; F2.3 servicio de conexiones con refresh rotatorio) quedan como "modo OAuth" opcional y dormido.
+
+**Qué pasa a post-MVP:** endpoints OAuth (start/callback/connections/disconnect), flujo OAuth del frontend, pruebas de aislamiento multiusuario y la adaptación a varias personas (ver "Backlog post-MVP: modo multiusuario con OAuth" en `docs/IMPLEMENTATION_PLAN.md`). Con OAuth la base URL del gateway sería `api.atlassian.com/ex/jira/{cloudId}`.

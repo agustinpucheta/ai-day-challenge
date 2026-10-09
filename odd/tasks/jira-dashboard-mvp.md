@@ -7,7 +7,7 @@
 
 ## Objective
 
-Deliver a local, per-user Jira Cloud dashboard (Vue 3 + Vite, NestJS, PostgreSQL/Prisma) that shows real epic/story progress, weekly consumed story points, subtasks, blocking dependencies and valid state transitions, using each user's own Atlassian OAuth 3LO connection.
+Deliver a local, per-user Jira Cloud dashboard (Vue 3 + Vite, NestJS, PostgreSQL/Prisma) that shows real epic/story progress, weekly consumed story points, subtasks, blocking dependencies and valid state transitions, using the owner's Jira API token (single-user local app, D-023; Atlassian OAuth 3LO kept as an optional mode for later multi-user adaptation).
 
 ## Problem
 
@@ -19,15 +19,15 @@ Give each user an explainable, deterministic view of real progress sourced from 
 
 ## Scope
 
-MVP phases 0–8 from `docs/IMPLEMENTATION_PLAN.md`. Out of scope: Microsoft SSO, Railway deploy, bulk/arbitrary edits, license ticket Skill, runtime LLM for metrics.
+MVP phases 0–9 from `docs/IMPLEMENTATION_PLAN.md`. The license flow is now in scope as F9 (D-020, D-021): manual form, optional AI-assisted draft, `.ics`. Out of scope: Microsoft SSO, Railway deploy, bulk/arbitrary edits, writing Outlook events via Microsoft Graph (optional post-MVP, F9.5), runtime LLM for metrics (LLM only drafts license requests).
 
 ## Constraints
 
 - Jira is the source of truth; never invent field IDs, issue types or statuses without evidence.
-- Per-user isolation: every Jira call uses the authenticated user's own OAuth connection; never trust a client-sent `userId`.
+- Decision D-023 (2026-10-09): the app is local and single-user; the Jira connection uses the owner's Jira Cloud API token (Basic auth) from `JIRA_URL`, `JIRA_USERNAME`, `JIRA_API_TOKEN` (same as the local Jira MCP), filled manually in `.env`. Credentials are resolved via `JiraCredentialProvider` (default `ApiTokenCredentialProvider`); OAuth stays as a dormant optional mode and per-user Jira isolation returns with the multi-user adaptation. Never trust a client-sent `userId`.
 - No secrets in frontend, logs, versioned tests or API responses; tokens encrypted at rest.
 - No writes to real Jira during discovery or tests; MCP is read-only and development-only.
-- Metrics are deterministic, tested TypeScript; no LLM at runtime.
+- Metrics are deterministic, tested TypeScript; no LLM in metrics. Runtime LLM is allowed only to draft license requests (F9.4, D-021): it never writes to Jira; calendar-event creation via Outlook MCP is allowed only with user confirmation and only if the F9.0b spike passes (D-022 amends D-021).
 - Transitions only if Jira offered them for that issue in that request.
 - Strict TypeScript, validated DTOs, versioned migrations, unit + integration tests; modular monolith.
 - Do not present stale data as current; expose fetch timestamps and distinguish error/empty/stale.
@@ -54,19 +54,31 @@ MVP phases 0–8 from `docs/IMPLEMENTATION_PLAN.md`. Out of scope: Microsoft SSO
   - [x] F1.4b Swagger/OpenAPI at /api/docs + openapi:export (user request, pulled from Phase 3).
   - [x] F1.5 Frontend: Vue 3 + Vite + TS + Router, lint/format/typecheck/test, base layout, login/register views, auth state, Jira connection placeholder states.
   - [x] F1.6 Phase close: commits 8807b3f (backend) and 907339d (frontend), pushed. Native review: declined by context budget (lens_context_budget_exceeded, 137 files / ~18k lines); user chose to skip. Lesson: keep commits small so each is reviewable.
-- [ ] **F2** — Individual Jira Cloud OAuth. Gate: user B cannot use user A's connection or inspect tokens; tests cover invalid callback, state replay, expiry, refresh rotation, revocation. Small commits, one slice each (review-sized):
-  - [x] F2.1 Token encryption (AES-256-GCM, key version) + env schema (Atlassian vars optional: unset = feature disabled) + migration for `jira_connections` and `oauth_states`.
-  - [x] F2.2 OAuth state service (one-time, session-bound, short expiry) + Atlassian OAuth client (authorize URL, code exchange, accessible-resources, refresh) behind an injectable HTTP port; tests with a fake Atlassian.
-  - [ ] F2.3 Connections service: persist encrypted tokens per user+cloudId, serialized rotating refresh, `reauthorization_required` status, disconnect with revoke.
-  - [ ] F2.4 HTTP layer: oauth start/callback, GET/DELETE connections, `/auth/me` jira status, OpenAPI regenerated; e2e with fake Atlassian (invalid callback, state replay, expiry, rotation, revocation, user isolation).
-  - [ ] F2.5 Frontend: Connect Jira button, connected/reauth/not-configured states, disconnect; regenerate API types.
-  - [ ] F2.6 Docs: setup of Atlassian app + scope justification; real login manual check by user (pending credentials).
+- [ ] **F2** — Jira connection (local API token; optional OAuth, D-023). Gate: with a fake Jira (HttpPort) the token never appears in logs/errors/responses; wrong/expired token yields a normalized `JIRA_REAUTH_REQUIRED`-style error distinct from empty data; unconfigured is a distinct state; 401/403/429 mapped. Small commits, one slice each (review-sized):
+  - OAuth building blocks (kept as optional, dormant "OAuth mode"):
+    - [x] F2.1 Token encryption (AES-256-GCM, key version) + env schema (Atlassian vars optional: unset = feature disabled) + migration for `jira_connections` and `oauth_states`.
+    - [x] F2.2 OAuth state service (one-time, session-bound, short expiry) + Atlassian OAuth client (authorize URL, code exchange, accessible-resources, refresh) behind an injectable HTTP port; tests with a fake Atlassian.
+    - [x] F2.3 Connections service: persist encrypted tokens per user+cloudId, serialized rotating refresh, `reauthorization_required` status, disconnect with revoke.
+  - API token mode (default):
+    - [ ] F2.4 `JiraCredentialProvider.resolve(userId)` interface + `ApiTokenCredentialProvider` + env validation (`JIRA_URL`, `JIRA_USERNAME`, `JIRA_API_TOKEN` optional: unset = "not configured") + `GET /jira/connection` and a read-only "verify" action calling Jira `GET /rest/api/3/myself` returning only connected/siteUrl/displayName (never the token) + OpenAPI regenerated.
+    - [ ] F2.5 Frontend connection panel (not configured / verifying / connected / error / unauthorized token); regenerate API types.
+    - [ ] F2.6 Docs: create/rotate the token at id.atlassian.com (Security, API tokens), `.env` setup, troubleshooting.
+  - Note: OAuth HTTP layer (start/callback/connections/disconnect) + OAuth frontend + multi-user isolation tests moved to the post-MVP backlog ("Backlog post-MVP: modo multiusuario con OAuth" in `docs/IMPLEMENTATION_PLAN.md`).
 - [ ] **F3** — Jira Gateway and search/read. Gate: user sees a permitted real issue; inaccessible issues leak nothing; errors never become empty lists/0%.
 - [ ] **F4** — Metrics, subtasks and weekly SP. Gate: tests for story without subtasks, empty epic, null fields, estimate changes, in/out of period, reopen, pagination, duplicates.
 - [ ] **F5** — Blocking dependencies. Gate: fixtures for both link directions and an external blocker; direction not inverted.
 - [ ] **F6** — Per-user preferences and tracking. Gate: two users have different tracked lists; data never crosses.
 - [ ] **F7** — State transitions with user permissions. Gate: unauthorized user cannot transition; arbitrary transition IDs rejected; operation audited.
-- [ ] **F8** — End-to-end and MVP closure. Gate: fresh setup from README; typecheck/lint/tests pass; no secrets; metrics verified against Jira.
+- [ ] **F8** — Base end-to-end hardening of phases 1–7 (MVP closure happens at F9). Gate: fresh setup from README; typecheck/lint/tests pass; no secrets; metrics verified against Jira.
+- [ ] **F9** — License tickets from the dashboard (last MVP phase; closes the MVP, D-020/D-021). Gate: Jira-mock tests prove no ticket without confirmation, no duplicates, user isolation, invalid/inaccessible epic rejected without leaks, deterministic drafts, AI off/failing keeps manual flow, no real Jira writes in tests; one real ticket created once, manually, in an environment the user explicitly authorizes.
+  - [ ] F9.0 Discovery (read-only): `Licencias` issue type (hierarchy level 0 in MASIN, evidence only), createmeta required fields/allowed values/epic `parent` relation; record in `docs/JIRA_DISCOVERY.md` + typed config; template marked "verificada" only after user review.
+  - [ ] F9.0b Feasibility spike (D-022): headless Agent SDK `query()` run, inspect `system/init` (`mcp_servers`, `tools`) with subscription login and with `ANTHROPIC_API_KEY`; confirm (a) Microsoft 365 connector loads, (b) event-creation tools exist (admin write tools), (c) exact tool names, (d) `mcp-atlassian` tool names, (e) `~/.claude.json` entries load. No writes to Jira/Outlook.
+  - [ ] F9.1 Backend: `POST /licenses/drafts` (deterministic, validated) and `POST /licenses` (explicit confirmation bound to draft id + content hash, idempotent, audited, Jira error mapping 403/400/429; scope `write:jira-work`).
+  - [ ] F9.2 `.ics` generation (RFC 5545, all-day "Vacaciones", stable UID); document that it does not create the event inside Outlook.
+  - [ ] F9.2b Agent creates the Outlook event via the Outlook MCP (chosen option, D-022; depends on F9.0b): agent proposes, UI shows event preview, user confirms before any write (`canUseTool`/hook), exact-tool allowlist, no Jira write tools reachable, runs reading Jira content cannot call calendar-write tools without the confirmation UI; `.ics` (F9.2) stays default and automatic fallback. Decision point after spike: keep F9.2b, switch to Graph (F9.5) or stay with `.ics`.
+  - [ ] F9.3 Frontend "Licencias" view: form, epic search, draft preview, confirm, result with Jira link and "Descargar .ics"; loading/error/empty/forbidden/duplicate states.
+  - [ ] F9.4 AI agent (feature flag, off without `ANTHROPIC_API_KEY`): free text to structured draft only; key in backend env; size/rate limits; content-free logs; fallback to manual form; prompt-injection handling; tests with a fake model client only.
+  - [ ] F9.5 (optional, post-MVP) Read Outlook events via Microsoft Graph (`Calendars.Read`, Entra app, possible admin consent) with a "Generar ticket de licencia" button.
 
 ## Progress and evidence
 
@@ -92,7 +104,7 @@ MVP phases 0–8 from `docs/IMPLEMENTATION_PLAN.md`. Out of scope: Microsoft SSO
 
 ## Next step
 
-F2.1 token encryption + schema. User creates the Atlassian OAuth app and fills ATLASSIAN_CLIENT_ID/SECRET in .env meanwhile; code and tests use a fake Atlassian.
+Finish F2.3 (dormant OAuth connections service), then F2.4 `JiraCredentialProvider` + API token provider. User fills JIRA_URL/JIRA_USERNAME/JIRA_API_TOKEN in .env by hand; code and tests use a fake Jira.
 
 ## Open questions
 
@@ -100,3 +112,10 @@ F2.1 token encryption + schema. User creates the Atlassian OAuth app and fills A
 2. Does REST `/rest/api/3/issue/{key}/changelog` paginate beyond 100 entries as expected? (verify in F3)
 3. How does Jira respond when a linked issue is not readable by the user? (needs a second account; F5)
 4. `docs/API_CONTRACTS.md` lacks fields for the cancelled metric and planning deviation (update before F4).
+5. License ticket template (issue type, required fields, epic relation) is PENDING until F9.0 discovery and user review.
+6. Is a Microsoft Entra app registration available (possibly admin consent)? PENDING; only needed for optional F9.5.
+7. F9.4 needs an `ANTHROPIC_API_KEY`; decide cost and rate/size limits before implementing.
+8. Does the subscription-login policy for third-party Agent SDK apps cover a personal, single-user local app? UNVERIFIED (check Terms / ask Anthropic); gates F9.2b.
+9. Did the org admin enable the Microsoft 365 connector write tools (calendar create/update/delete)? UNVERIFIED, likely off (only read tools were listed); resolved by F9.0b.
+10. Do `~/.claude.json` local-scope MCP entries load in Agent SDK sessions? UNVERIFIED; until F9.0b the Jira MCP is declared explicitly in `mcpServers`.
+11. ApiToken single identity: should registration be disabled after the owner account exists (`LOCAL_REGISTRATION_ENABLED=false`)?

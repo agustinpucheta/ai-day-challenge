@@ -10,6 +10,8 @@
 
 ## Pipeline B — Conectar Jira por usuario
 
+> Nota (D-023): este pipeline describe el modo OAuth opcional (dormido, post-MVP). El modo por defecto usa el API token del dueño de la instancia (`JIRA_URL`, `JIRA_USERNAME`, `JIRA_API_TOKEN`) mediante `ApiTokenCredentialProvider`; no hay redirect, callback ni refresh. La app solo expone el estado de la conexión y una verificación de solo lectura (`GET /rest/api/3/myself`).
+
 1. Usuario ya autenticado en el dashboard pulsa “Conectar Jira”.
 2. NestJS crea un `state` aleatorio, de un solo uso, vinculado a la sesión del usuario y con expiración breve.
 3. Redirige al endpoint de autorización Atlassian con `client_id`, `redirect_uri`, scopes mínimos, `response_type=code`, `state` y `prompt=consent` según documentación vigente.
