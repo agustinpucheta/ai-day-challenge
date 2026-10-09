@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { AppException } from './app-exception';
 import { ErrorBody, ErrorCode } from './error-codes';
 
 const BAD_REQUEST: ErrorBody = { code: ErrorCode.VALIDATION_ERROR, message: 'Invalid request' };
@@ -60,6 +61,9 @@ export class HttpErrorFilter implements ExceptionFilter {
         `Unhandled ${name}`,
         exception instanceof Error ? exception.stack : undefined,
       );
+    }
+    if (exception instanceof AppException && exception.retryAfterSeconds !== undefined) {
+      res.setHeader('Retry-After', String(Math.ceil(exception.retryAfterSeconds)));
     }
     res.status(status).json(body);
   }

@@ -7,6 +7,7 @@ import { Env, ROOT_ENV_FILE, validateEnv } from './config/env';
 import { CryptoModule } from './crypto/crypto.module';
 import { HealthModule } from './health/health.module';
 import { JiraOAuthModule } from './jira/jira-oauth.module';
+import { JiraModule } from './jira/jira.module';
 import { PreferencesModule } from './preferences/preferences.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
@@ -38,6 +39,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     PreferencesModule,
     JiraOAuthModule,
+    JiraModule,
     HealthModule,
   ],
 })

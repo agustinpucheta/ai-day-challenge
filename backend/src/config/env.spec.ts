@@ -173,6 +173,86 @@ describe('validateEnv', () => {
     });
   });
 
+  describe('Jira API token (single-user mode)', () => {
+    const TOKEN = 'ATATT-super-secret-token-value';
+    const JIRA = {
+      JIRA_URL: 'https://acme.atlassian.net',
+      JIRA_USERNAME: 'owner@example.com',
+      JIRA_API_TOKEN: TOKEN,
+    };
+
+    function messageOf(raw: Record<string, unknown>): string {
+      try {
+        validateEnv(raw);
+      } catch (error) {
+        return (error as Error).message;
+      }
+      return '';
+    }
+
+    it('is unconfigured when no variable is set, and empty strings count as unset', () => {
+      const env = validateEnv(VALID);
+      expect(env.jiraApiTokenConfigured).toBe(false);
+      expect(env.JIRA_API_TOKEN).toBeUndefined();
+      const empty = validateEnv({ ...VALID, JIRA_URL: '', JIRA_USERNAME: '', JIRA_API_TOKEN: '' });
+      expect(empty.jiraApiTokenConfigured).toBe(false);
+    });
+
+    it('is configured when all three variables are set', () => {
+      const env = validateEnv({ ...VALID, ...JIRA });
+      expect(env.jiraApiTokenConfigured).toBe(true);
+      expect(env.JIRA_URL).toBe('https://acme.atlassian.net');
+      expect(env.JIRA_USERNAME).toBe('owner@example.com');
+      expect(env.JIRA_API_TOKEN?.reveal()).toBe(TOKEN);
+    });
+
+    it('fails on a partial configuration naming only the missing variables', () => {
+      const message = messageOf({ ...VALID, JIRA_URL: JIRA.JIRA_URL, JIRA_API_TOKEN: TOKEN });
+      expect(message).toContain('JIRA_USERNAME');
+      expect(message).not.toContain('JIRA_URL');
+      expect(message).not.toContain('JIRA_API_TOKEN');
+      expect(message).not.toContain(TOKEN);
+      expect(messageOf({ ...VALID, JIRA_API_TOKEN: TOKEN })).toMatch(/JIRA_URL.*JIRA_USERNAME/);
+    });
+
+    it('normalizes the URL to its origin', () => {
+      const env = validateEnv({
+        ...VALID,
+        ...JIRA,
+        JIRA_URL: 'https://acme.atlassian.net/jira/software/?x=1',
+      });
+      expect(env.JIRA_URL).toBe('https://acme.atlassian.net');
+      expect(
+        validateEnv({ ...VALID, ...JIRA, JIRA_URL: 'https://acme.atlassian.net/' }).JIRA_URL,
+      ).toBe('https://acme.atlassian.net');
+    });
+
+    it('requires https except for localhost and 127.0.0.1', () => {
+      expect(messageOf({ ...VALID, ...JIRA, JIRA_URL: 'http://acme.atlassian.net' })).toContain(
+        'JIRA_URL',
+      );
+      expect(messageOf({ ...VALID, ...JIRA, JIRA_URL: 'ftp://acme.atlassian.net' })).toContain(
+        'JIRA_URL',
+      );
+      expect(messageOf({ ...VALID, ...JIRA, JIRA_URL: 'not a url' })).toContain('JIRA_URL');
+      expect(messageOf({ ...VALID, ...JIRA, JIRA_URL: 'http://localhost:4010' })).toBe('');
+      expect(messageOf({ ...VALID, ...JIRA, JIRA_URL: 'http://127.0.0.1:4010' })).toBe('');
+    });
+
+    it('requires the username to look like an email', () => {
+      const message = messageOf({ ...VALID, ...JIRA, JIRA_USERNAME: 'not-an-email' });
+      expect(message).toContain('JIRA_USERNAME');
+      expect(message).not.toContain('not-an-email');
+    });
+
+    it('never exposes the token through serialization or error messages', () => {
+      const env = validateEnv({ ...VALID, ...JIRA });
+      expect(JSON.stringify(env)).not.toContain(TOKEN);
+      expect(String(env.JIRA_API_TOKEN)).not.toContain(TOKEN);
+      expect(messageOf({ ...VALID, ...JIRA, JIRA_USERNAME: 'bad' })).not.toContain(TOKEN);
+    });
+  });
+
   it('rejects a missing database URL', () => {
     const withoutUrl: Record<string, unknown> = { ...VALID };
     delete withoutUrl.DATABASE_URL;

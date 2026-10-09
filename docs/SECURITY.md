@@ -48,6 +48,15 @@
 - El servicio distingue internamente `invalid`, `expired`, `replayed` y `wrong_session` para auditoría y logs; la capa HTTP debe responder siempre con un único error genérico.
 - Un intento de otro usuario o de otra sesión no consume el `state`. Las filas vencidas se eliminan con `deleteExpired()` (todavía sin programar).
 
+## API token de Jira (modo de un solo usuario, D-023)
+
+- Variables: `JIRA_URL` (https; `http` solo para `localhost`/`127.0.0.1`; se normaliza al origen, sin ruta ni query), `JIRA_USERNAME` (email de la cuenta) y `JIRA_API_TOKEN`. Las tres son opcionales: sin definir (o vacías) la conexión queda "no configurada". Una configuración parcial hace fallar el arranque nombrando solo las variables, nunca sus valores.
+- El token se envuelve en un objeto `Secret` al validar el entorno: `JSON.stringify`, `String()` y `util.inspect` imprimen `[REDACTED]`. Solo `reveal()` devuelve el valor, y se usa únicamente al armar el header.
+- `ApiTokenCredentialProvider` guarda email y token en campos privados y arma el header `Authorization: Basic base64(email:token)` en cada request. `JiraGateway` solo recibe los headers terminados; ni el token ni el header se exponen como propiedades.
+- Las llamadas usan timeout de 10 s, sin reintentos ni redirecciones. Los errores tipados tienen mensajes fijos: no incluyen token, email, header ni cuerpos remotos, y se descarta la causa original de los fallos de red.
+- Un 401 de Jira se informa como `JIRA_REAUTH_REQUIRED` con HTTP 424 (no 401), para no confundirlo con la sesión de la aplicación.
+- Cualquier usuario local autenticado usa la identidad de este token (ver las mitigaciones de D-023). Los tests nunca usan el token real: `test/setup-env.ts` vacía las tres variables y el Jira se simula detrás de `HttpPort`.
+
 ## Autorización multiusuario
 
 - El usuario propietario se obtiene de sesión autenticada.

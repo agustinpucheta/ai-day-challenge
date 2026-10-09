@@ -48,7 +48,7 @@
             }
           },
           "409": {
-            "description": "EMAIL_ALREADY_REGISTERED",
+            "description": "EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured)",
             "content": {
               "application/json": {
                 "schema": {
@@ -58,7 +58,7 @@
             }
           },
           "429": {
-            "description": "RATE_LIMITED",
+            "description": "RATE_LIMITED (local throttle) or JIRA_RATE_LIMITED (Jira; see Retry-After)",
             "content": {
               "application/json": {
                 "schema": {
@@ -131,7 +131,7 @@
             }
           },
           "429": {
-            "description": "RATE_LIMITED",
+            "description": "RATE_LIMITED (local throttle) or JIRA_RATE_LIMITED (Jira; see Retry-After)",
             "content": {
               "application/json": {
                 "schema": {
@@ -311,6 +311,130 @@
         ]
       }
     },
+    "/api/v1/jira/connection": {
+      "get": {
+        "operationId": "JiraConnectionController_status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JiraConnectionStatusDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jd.sid": []
+          }
+        ],
+        "summary": "Jira connection state (no network call, no secrets)",
+        "tags": [
+          "jira"
+        ]
+      }
+    },
+    "/api/v1/jira/connection/verify": {
+      "post": {
+        "operationId": "JiraConnectionController_verify",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JiraConnectionVerifyDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED (no valid session) or INVALID_CREDENTIALS (login)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN_ORIGIN (CSRF origin check) or REGISTRATION_DISABLED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "EMAIL_ALREADY_REGISTERED or JIRA_NOT_CONNECTED (Jira credentials not configured)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "424": {
+            "description": "JIRA_REAUTH_REQUIRED (Jira rejected the API token) or JIRA_FORBIDDEN (account lacks permission)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED (local throttle) or JIRA_RATE_LIMITED (Jira; see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DATABASE_UNAVAILABLE or JIRA_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jd.sid": []
+          }
+        ],
+        "summary": "Verify the Jira credentials with a read-only call to /myself",
+        "tags": [
+          "jira"
+        ]
+      }
+    },
     "/api/v1/health": {
       "get": {
         "operationId": "HealthController_check",
@@ -327,7 +451,7 @@
             }
           },
           "503": {
-            "description": "DATABASE_UNAVAILABLE",
+            "description": "DATABASE_UNAVAILABLE or JIRA_UNAVAILABLE",
             "content": {
               "application/json": {
                 "schema": {
@@ -466,6 +590,11 @@
               "EMAIL_ALREADY_REGISTERED",
               "NOT_FOUND",
               "DATABASE_UNAVAILABLE",
+              "JIRA_NOT_CONNECTED",
+              "JIRA_REAUTH_REQUIRED",
+              "JIRA_FORBIDDEN",
+              "JIRA_RATE_LIMITED",
+              "JIRA_UNAVAILABLE",
               "INTERNAL_ERROR"
             ],
             "example": "UNAUTHENTICATED"
@@ -571,6 +700,67 @@
             "type": "boolean"
           }
         }
+      },
+      "JiraConnectionStatusDto": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "api_token"
+            ],
+            "example": "api_token"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_configured",
+              "configured"
+            ],
+            "example": "configured"
+          },
+          "siteUrl": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://acme.atlassian.net"
+          }
+        },
+        "required": [
+          "mode",
+          "status",
+          "siteUrl"
+        ]
+      },
+      "JiraConnectionVerifyDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "connected"
+            ],
+            "example": "connected"
+          },
+          "siteUrl": {
+            "type": "string",
+            "example": "https://acme.atlassian.net"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Ada Lovelace"
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When Jira was queried."
+          }
+        },
+        "required": [
+          "status",
+          "siteUrl",
+          "displayName",
+          "checkedAt"
+        ]
       },
       "HealthResponseDto": {
         "type": "object",

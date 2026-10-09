@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import type { TokenKeyring } from '../crypto/token-cipher';
+import { Secret } from './secret';
 
 /** The backend reads the repository root .env (backend/ is the process cwd). */
 export const ROOT_ENV_FILE = resolve(process.cwd(), '..', '.env');
@@ -38,6 +39,24 @@ const previousKeys = z.string().transform((value, ctx): Record<string, string> =
   const result = z.record(z.string().regex(/^[1-9]\d*$/), aesKey).safeParse(parsed);
   return result.success ? result.data : invalid('must map key versions to 32-byte base64 keys');
 });
+
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1']);
+
+/** Jira site URL reduced to its origin; https only (http allowed for local test doubles). */
+const jiraUrl = z.string().transform((value, ctx): string => {
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'https:' || (url.protocol === 'http:' && LOCAL_HOSTS.has(url.hostname))) {
+      return url.origin;
+    }
+  } catch {
+    // Falls through to the generic issue below; the value is never echoed.
+  }
+  ctx.issues.push({ code: 'custom', message: 'must be an https:// URL', input: undefined });
+  return '';
+});
+
+const JIRA_API_TOKEN_VARS = ['JIRA_URL', 'JIRA_USERNAME', 'JIRA_API_TOKEN'] as const;
 
 function oauthConfigured(env: {
   ATLASSIAN_CLIENT_ID?: string;
@@ -89,8 +108,29 @@ export const envSchema = z
     ATLASSIAN_PREFERRED_SITE_URL: emptyAsUnset(z.url().optional()),
     ATLASSIAN_AUTH_BASE_URL: emptyAsUnset(z.url().default('https://auth.atlassian.com')),
     ATLASSIAN_API_BASE_URL: emptyAsUnset(z.url().default('https://api.atlassian.com')),
+    /** Single-user mode (D-023): the owner's Jira Cloud API token. All three or none. */
+    JIRA_URL: emptyAsUnset(jiraUrl.optional()),
+    JIRA_USERNAME: emptyAsUnset(z.email().optional()),
+    JIRA_API_TOKEN: emptyAsUnset(
+      z
+        .string()
+        .trim()
+        .min(1)
+        .transform((value) => new Secret(value))
+        .optional(),
+    ),
   })
   .superRefine((env, ctx) => {
+    const present = JIRA_API_TOKEN_VARS.filter((name) => env[name] !== undefined);
+    if (present.length > 0 && present.length < JIRA_API_TOKEN_VARS.length) {
+      for (const name of JIRA_API_TOKEN_VARS.filter((n) => env[n] === undefined)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [name],
+          message: 'is required when any other Jira API token variable is set',
+        });
+      }
+    }
     if (oauthConfigured(env) && env.TOKEN_ENCRYPTION_KEY === undefined) {
       ctx.addIssue({
         code: 'custom',
@@ -110,7 +150,11 @@ export const envSchema = z
       });
     }
   })
-  .transform((env) => ({ ...env, jiraOAuthConfigured: oauthConfigured(env) }));
+  .transform((env) => ({
+    ...env,
+    jiraOAuthConfigured: oauthConfigured(env),
+    jiraApiTokenConfigured: JIRA_API_TOKEN_VARS.every((name) => env[name] !== undefined),
+  }));
 
 export type Env = z.infer<typeof envSchema>;
 

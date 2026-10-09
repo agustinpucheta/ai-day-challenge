@@ -33,7 +33,12 @@ describe('OpenAPI docs (e2e)', () => {
     const body = res.body as { paths: Record<string, unknown> };
     const paths = Object.keys(body.paths);
     expect(paths).toEqual(
-      expect.arrayContaining(['/api/v1/auth/login', '/api/v1/users/me/preferences']),
+      expect.arrayContaining([
+        '/api/v1/auth/login',
+        '/api/v1/users/me/preferences',
+        '/api/v1/jira/connection',
+        '/api/v1/jira/connection/verify',
+      ]),
     );
     expect(res.body.components.securitySchemes['jd.sid']).toMatchObject({
       type: 'apiKey',
@@ -43,6 +48,12 @@ describe('OpenAPI docs (e2e)', () => {
     expect(properties.has('passwordHash')).toBe(false);
     expect(properties.has('password_hash')).toBe(false);
     expect(properties.has('code')).toBe(true);
+    const schemas = (res.body as { components: { schemas: Record<string, unknown> } }).components
+      .schemas;
+    const jiraSchemas = Object.entries(schemas).filter(([name]) => name.startsWith('Jira'));
+    expect(jiraSchemas.length).toBeGreaterThan(0);
+    const jiraProperties = collectPropertyNames(Object.fromEntries(jiraSchemas));
+    expect([...jiraProperties].filter((name) => /token|password|secret/i.test(name))).toEqual([]);
   });
 
   it('serves the Swagger UI', async () => {
